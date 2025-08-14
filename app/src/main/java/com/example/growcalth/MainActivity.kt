@@ -28,6 +28,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.growcalth.ui.theme.GrowCalthTheme
+import com.example.growcalth.ui.theme.Accent
+import com.example.growcalth.ui.theme.Surface
+import com.example.growcalth.ui.theme.OnSurface
+import com.example.growcalth.ui.theme.SurfaceVariant
+import com.example.growcalth.ui.theme.OnSurfaceVariant
+import com.example.growcalth.LandingPageActivity
+import com.example.growcalth.SignUpActivity
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -37,7 +44,7 @@ class MainActivity : ComponentActivity() {
             GrowCalthTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = Color(0xFFF3F4F6) // Light grey background
+                    color = MaterialTheme.colorScheme.background
                 ) {
                     LoginScreen(
                         modifier = Modifier.fillMaxSize(),
@@ -73,14 +80,14 @@ fun LoginScreen(
             modifier = Modifier
                 .size(120.dp)
                 .clip(CircleShape)
-                .background(Color.White),
+                .background(MaterialTheme.colorScheme.surface),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Default.Home,
                 contentDescription = "House Icon",
                 modifier = Modifier.size(50.dp),
-                tint = Color(0xFFDB5461)
+                tint = Accent
             )
         }
 
@@ -89,7 +96,7 @@ fun LoginScreen(
         Text(
             text = "Welcome Back",
             fontSize = 16.sp,
-            color = Color(0xFF9E9E9E),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
         )
 
@@ -100,7 +107,7 @@ fun LoginScreen(
             fontSize = 32.sp,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
-            color = Color.Black
+            color = MaterialTheme.colorScheme.onSurface
         )
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -108,7 +115,7 @@ fun LoginScreen(
         Text(
             text = "Sign in to contribute to your House",
             fontSize = 16.sp,
-            color = Color(0xFF9E9E9E),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
         )
 
@@ -118,7 +125,7 @@ fun LoginScreen(
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
-            placeholder = { Text("School Email", color = Color(0xFFBDBDBD), fontSize = 16.sp) },
+            placeholder = { Text("School Email", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 16.sp) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
@@ -126,15 +133,15 @@ fun LoginScreen(
                 Icon(
                     imageVector = Icons.Default.Email,
                     contentDescription = "Email Icon",
-                    tint = Color(0xFF9CA3AF)
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             },
             shape = RoundedCornerShape(28.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color.Transparent,
-                unfocusedBorderColor = Color.Transparent,
-                focusedContainerColor = Color.White,
-                unfocusedContainerColor = Color.White
+                focusedBorderColor = MaterialTheme.colorScheme.outline,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface
             )
         )
 
@@ -144,7 +151,7 @@ fun LoginScreen(
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
-            placeholder = { Text("Password", color = Color(0xFFBDBDBD), fontSize = 16.sp) },
+            placeholder = { Text("Password", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 16.sp) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -153,15 +160,15 @@ fun LoginScreen(
                 Icon(
                     imageVector = Icons.Default.Lock,
                     contentDescription = "Password Icon",
-                    tint = Color(0xFF9CA3AF)
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             },
             shape = RoundedCornerShape(28.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color.Transparent,
-                unfocusedBorderColor = Color.Transparent,
-                focusedContainerColor = Color.White,
-                unfocusedContainerColor = Color.White
+                focusedBorderColor = MaterialTheme.colorScheme.outline,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface
             )
         )
 
@@ -172,7 +179,7 @@ fun LoginScreen(
             TextButton(
                 onClick = { /* TODO: Handle forgot password */ },
                 colors = ButtonDefaults.textButtonColors(
-                    contentColor = Color(0xFFDB5461)
+                    contentColor = Accent
                 )
             ) {
                 Text("Forgot Password?", fontSize = 16.sp)
@@ -191,12 +198,12 @@ fun LoginScreen(
                 .height(56.dp),
             shape = RoundedCornerShape(28.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFDB5461)
+                containerColor = Accent
             )
         ) {
             Text(
                 text = "Login",
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onPrimary,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Medium
             )
@@ -210,13 +217,13 @@ fun LoginScreen(
         ) {
             Text(
                 text = "Don't have an account yet? ",
-                color = Color(0xFF9E9E9E),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 16.sp
             )
             TextButton(
                 onClick = onSignUpClick,
                 colors = ButtonDefaults.textButtonColors(
-                    contentColor = Color(0xFFDB5461)
+                    contentColor = Accent
                 )
             ) {
                 Text("Sign Up", fontSize = 14.sp, fontWeight = FontWeight.Medium)

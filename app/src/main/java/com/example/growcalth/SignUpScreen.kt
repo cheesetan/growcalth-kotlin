@@ -6,12 +6,17 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,6 +31,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.growcalth.ui.theme.GrowCalthTheme
+import com.example.growcalth.ui.theme.Accent
+import com.example.growcalth.ui.theme.Surface
+import com.example.growcalth.ui.theme.OnSurface
+import com.example.growcalth.ui.theme.SurfaceVariant
+import com.example.growcalth.ui.theme.OnSurfaceVariant
 
 class SignUpActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -60,7 +70,7 @@ fun SignUpScreen(modifier: Modifier = Modifier) {
 
     Column(
         modifier = modifier
-            .background(Color(0xFFF3F4F6))
+            .background(MaterialTheme.colorScheme.background)
             .padding(24.dp)
             .fillMaxSize(),
         verticalArrangement = Arrangement.Center,
@@ -71,13 +81,13 @@ fun SignUpScreen(modifier: Modifier = Modifier) {
             modifier = Modifier
                 .size(120.dp)
                 .clip(CircleShape)
-                .background(Color.White),
+                .background(MaterialTheme.colorScheme.surface),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Default.Person,
                 contentDescription = "Community Icon",
-                tint = Color(0xFFDB5461),
+                tint = Accent,
                 modifier = Modifier.size(50.dp)
             )
         }
@@ -87,7 +97,7 @@ fun SignUpScreen(modifier: Modifier = Modifier) {
         Text(
             text = "Create Account",
             fontSize = 16.sp,
-            color = Color(0xFF6B7280),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
         )
 
@@ -97,7 +107,7 @@ fun SignUpScreen(modifier: Modifier = Modifier) {
             text = "Join the House Today",
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
-            color = Color.Black,
+            color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center
         )
 
@@ -106,7 +116,7 @@ fun SignUpScreen(modifier: Modifier = Modifier) {
         Text(
             text = "Sign up to become part of the community",
             fontSize = 16.sp,
-            color = Color(0xFF9E9E9E),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
         )
 
@@ -116,7 +126,7 @@ fun SignUpScreen(modifier: Modifier = Modifier) {
         OutlinedTextField(
             value = schoolEmail,
             onValueChange = { schoolEmail = it },
-            placeholder = { Text("School Email", color = Color(0xFFBDBDBD), fontSize = 16.sp) },
+            placeholder = { Text("School Email", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 16.sp) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
@@ -124,15 +134,15 @@ fun SignUpScreen(modifier: Modifier = Modifier) {
                 Icon(
                     imageVector = Icons.Default.Email,
                     contentDescription = "Email Icon",
-                    tint = Color(0xFF9CA3AF)
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             },
             shape = RoundedCornerShape(28.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color.Transparent,
-                unfocusedBorderColor = Color.Transparent,
-                focusedContainerColor = Color.White,
-                unfocusedContainerColor = Color.White
+                focusedBorderColor = MaterialTheme.colorScheme.outline,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface
             )
         )
 
@@ -142,7 +152,7 @@ fun SignUpScreen(modifier: Modifier = Modifier) {
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
-            placeholder = { Text("Password", color = Color(0xFFBDBDBD), fontSize = 16.sp) },
+            placeholder = { Text("Password", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 16.sp) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -151,15 +161,15 @@ fun SignUpScreen(modifier: Modifier = Modifier) {
                 Icon(
                     imageVector = Icons.Default.Lock,
                     contentDescription = "Password Icon",
-                    tint = Color(0xFF9CA3AF)
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             },
             shape = RoundedCornerShape(28.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color.Transparent,
-                unfocusedBorderColor = Color.Transparent,
-                focusedContainerColor = Color.White,
-                unfocusedContainerColor = Color.White
+                focusedBorderColor = MaterialTheme.colorScheme.outline,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface
             )
         )
 
@@ -181,10 +191,10 @@ fun SignUpScreen(modifier: Modifier = Modifier) {
                     .menuAnchor(),
                 shape = RoundedCornerShape(28.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color.Transparent,
-                    unfocusedBorderColor = Color.Transparent,
-                    focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White
+                    focusedBorderColor = MaterialTheme.colorScheme.outline,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
                 )
             )
             ExposedDropdownMenu(
@@ -217,14 +227,14 @@ fun SignUpScreen(modifier: Modifier = Modifier) {
                 .height(56.dp),
             shape = RoundedCornerShape(28.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFDB5461)
+                containerColor = Accent
             )
         ) {
             Text(
                 "Create Account",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = MaterialTheme.colorScheme.onPrimary
             )
         }
 
@@ -237,7 +247,7 @@ fun SignUpScreen(modifier: Modifier = Modifier) {
             Text(
                 text = "Already have an account? ",
                 fontSize = 14.sp,
-                color = Color(0xFF6B7280)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             TextButton(
                 onClick = {
@@ -245,7 +255,7 @@ fun SignUpScreen(modifier: Modifier = Modifier) {
                     context.startActivity(intent)
                 },
                 colors = ButtonDefaults.textButtonColors(
-                    contentColor = Color(0xFFDB5461)
+                    contentColor = Accent
                 )
             ) {
                 Text(
