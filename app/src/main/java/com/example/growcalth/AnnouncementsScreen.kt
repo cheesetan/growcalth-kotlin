@@ -102,7 +102,7 @@ fun AnnouncementsTab(
             onClick = { /* TODO: Handle new announcement */ },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(bottom = 80.dp, end = 20.dp),
+                .padding(bottom = 16.dp, end = 16.dp),
             containerColor = Color(0xFFE53E3E),
             contentColor = Color.White,
             shape = RoundedCornerShape(16.dp)

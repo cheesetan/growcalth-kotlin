@@ -1,7 +1,7 @@
 package com.example.growcalth
 
-import android.os.Bundle
 import android.content.Intent
+import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -18,13 +18,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.platform.LocalContext
 import com.example.growcalth.ui.theme.GrowCalthTheme
 
 class SignUpActivity : ComponentActivity() {
@@ -32,7 +32,6 @@ class SignUpActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            // Static theme without collectAsState or ViewModel
             GrowCalthTheme {
                 Scaffold(
                     modifier = Modifier.fillMaxSize()
@@ -48,43 +47,48 @@ class SignUpActivity : ComponentActivity() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SignUpScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     var schoolEmail by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var selectedHouse by remember { mutableStateOf("") }
+    var expanded by remember { mutableStateOf(false) }
+
+    val houseOptions = listOf("Red", "Green", "Blue", "Yellow", "Black")
 
     Column(
         modifier = modifier
-            .background(Color.White)
+            .background(Color(0xFFF3F4F6))
             .padding(24.dp)
             .fillMaxSize(),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Icon
+        // Circle behind icon
         Box(
             modifier = Modifier
-                .size(80.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(Color(0xFFF5F5F5)),
+                .size(120.dp)
+                .clip(CircleShape)
+                .background(Color.White),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Default.Person,
                 contentDescription = "Community Icon",
-                tint = Color(0xFFE53E3E),
-                modifier = Modifier.size(40.dp)
+                tint = Color(0xFFDB5461),
+                modifier = Modifier.size(50.dp)
             )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(32.dp))
 
         Text(
             text = "Create Account",
             fontSize = 16.sp,
-            color = Color(0xFF9CA3AF)
+            color = Color(0xFF6B7280),
+            textAlign = TextAlign.Center
         )
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -101,18 +105,19 @@ fun SignUpScreen(modifier: Modifier = Modifier) {
 
         Text(
             text = "Sign up to become part of the community",
-            fontSize = 14.sp,
-            color = Color(0xFF9CA3AF),
+            fontSize = 16.sp,
+            color = Color(0xFF9E9E9E),
             textAlign = TextAlign.Center
         )
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(48.dp))
 
         // School Email field
         OutlinedTextField(
             value = schoolEmail,
             onValueChange = { schoolEmail = it },
-            label = { Text("School Email") },
+            placeholder = { Text("School Email", color = Color(0xFFBDBDBD), fontSize = 16.sp) },
+            singleLine = true,
             modifier = Modifier.fillMaxWidth(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
             leadingIcon = {
@@ -122,13 +127,13 @@ fun SignUpScreen(modifier: Modifier = Modifier) {
                     tint = Color(0xFF9CA3AF)
                 )
             },
+            shape = RoundedCornerShape(28.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color(0xFFE53E3E),
-                unfocusedBorderColor = Color(0xFFE5E7EB),
-                focusedLabelColor = Color(0xFFE53E3E),
-                unfocusedLabelColor = Color(0xFF9CA3AF)
-            ),
-            shape = RoundedCornerShape(12.dp)
+                focusedBorderColor = Color.Transparent,
+                unfocusedBorderColor = Color.Transparent,
+                focusedContainerColor = Color.White,
+                unfocusedContainerColor = Color.White
+            )
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -137,7 +142,8 @@ fun SignUpScreen(modifier: Modifier = Modifier) {
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
-            label = { Text("Password") },
+            placeholder = { Text("Password", color = Color(0xFFBDBDBD), fontSize = 16.sp) },
+            singleLine = true,
             modifier = Modifier.fillMaxWidth(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
             visualTransformation = PasswordVisualTransformation(),
@@ -148,68 +154,77 @@ fun SignUpScreen(modifier: Modifier = Modifier) {
                     tint = Color(0xFF9CA3AF)
                 )
             },
+            shape = RoundedCornerShape(28.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color(0xFFE53E3E),
-                unfocusedBorderColor = Color(0xFFE5E7EB),
-                focusedLabelColor = Color(0xFFE53E3E),
-                unfocusedLabelColor = Color(0xFF9CA3AF)
-            ),
-            shape = RoundedCornerShape(12.dp)
+                focusedBorderColor = Color.Transparent,
+                unfocusedBorderColor = Color.Transparent,
+                focusedContainerColor = Color.White,
+                unfocusedContainerColor = Color.White
+            )
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Select your house field
-        OutlinedTextField(
-            value = selectedHouse,
-            onValueChange = { selectedHouse = it },
-            label = { Text("Select your house") },
-            modifier = Modifier.fillMaxWidth(),
-            readOnly = true,
-            trailingIcon = {
-                Icon(
-                    imageVector = Icons.Default.KeyboardArrowDown,
-                    contentDescription = "Dropdown Icon",
-                    tint = Color(0xFF9CA3AF)
+        // Select your house dropdown
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = !expanded }
+        ) {
+            OutlinedTextField(
+                value = selectedHouse,
+                onValueChange = { },
+                placeholder = { Text("Select your house") }, // <-- Use placeholder instead of label
+                readOnly = true,
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor(),
+                shape = RoundedCornerShape(28.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color.Transparent,
+                    unfocusedBorderColor = Color.Transparent,
+                    focusedContainerColor = Color.White,
+                    unfocusedContainerColor = Color.White
                 )
-            },
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color(0xFFE53E3E),
-                unfocusedBorderColor = Color(0xFFE5E7EB),
-                focusedLabelColor = Color(0xFFE53E3E),
-                unfocusedLabelColor = Color(0xFF9CA3AF)
-            ),
-            shape = RoundedCornerShape(12.dp)
-        )
+            )
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                houseOptions.forEach { house ->
+                    DropdownMenuItem(
+                        text = { Text(house) },
+                        onClick = {
+                            selectedHouse = house
+                            expanded = false
+                        }
+                    )
+                }
+            }
+        }
+
 
         Spacer(modifier = Modifier.height(32.dp))
 
         // Create Account button
         Button(
             onClick = {
-                val intent = Intent(context, LandingPageActivity::class.java)
+                val intent = Intent(context, MainActivity::class.java)
                 context.startActivity(intent)
             },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
+            shape = RoundedCornerShape(28.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFE53E3E)
-            ),
-            shape = RoundedCornerShape(12.dp)
+                containerColor = Color(0xFFDB5461)
+            )
         ) {
             Text(
                 "Create Account",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Icon(
-                imageVector = Icons.Default.Person,
-                contentDescription = "Person Icon",
-                tint = Color.White,
-                modifier = Modifier.size(20.dp)
             )
         }
 
@@ -226,11 +241,11 @@ fun SignUpScreen(modifier: Modifier = Modifier) {
             )
             TextButton(
                 onClick = {
-                    val intent = Intent(context, LandingPageActivity::class.java)
+                    val intent = Intent(context, MainActivity::class.java)
                     context.startActivity(intent)
                 },
                 colors = ButtonDefaults.textButtonColors(
-                    contentColor = Color(0xFFE53E3E)
+                    contentColor = Color(0xFFDB5461)
                 )
             ) {
                 Text(

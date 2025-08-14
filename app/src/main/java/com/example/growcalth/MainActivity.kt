@@ -11,7 +11,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -35,7 +37,7 @@ class MainActivity : ComponentActivity() {
             GrowCalthTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = Color(0xFFE8E8E8) // Light grey background
+                    color = Color(0xFFF3F4F6) // Light grey background
                 ) {
                     LoginScreen(
                         modifier = Modifier.fillMaxSize(),
@@ -66,7 +68,7 @@ fun LoginScreen(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // House Icon
+        // Circle behind House Icon
         Box(
             modifier = Modifier
                 .size(120.dp)
@@ -78,7 +80,7 @@ fun LoginScreen(
                 imageVector = Icons.Default.Home,
                 contentDescription = "House Icon",
                 modifier = Modifier.size(50.dp),
-                tint = Color(0xFFE91E63) // Pink color
+                tint = Color(0xFFDB5461)
             )
         }
 
@@ -112,21 +114,22 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(48.dp))
 
-        // Email TextField
+        // Email TextField with leading icon
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
-            placeholder = {
-                Text(
-                    "School Email",
-                    color = Color(0xFFBDBDBD),
-                    fontSize = 16.sp
-                )
-            },
+            placeholder = { Text("School Email", color = Color(0xFFBDBDBD), fontSize = 16.sp) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-            shape = RoundedCornerShape(16.dp),
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.Email,
+                    contentDescription = "Email Icon",
+                    tint = Color(0xFF9CA3AF)
+                )
+            },
+            shape = RoundedCornerShape(28.dp),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = Color.Transparent,
                 unfocusedBorderColor = Color.Transparent,
@@ -137,22 +140,23 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Password TextField (no visibility toggle)
+        // Password TextField with leading icon
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
-            placeholder = {
-                Text(
-                    "Password",
-                    color = Color(0xFFBDBDBD),
-                    fontSize = 16.sp
-                )
-            },
+            placeholder = { Text("Password", color = Color(0xFFBDBDBD), fontSize = 16.sp) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
             visualTransformation = PasswordVisualTransformation(),
-            shape = RoundedCornerShape(16.dp),
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.Lock,
+                    contentDescription = "Password Icon",
+                    tint = Color(0xFF9CA3AF)
+                )
+            },
+            shape = RoundedCornerShape(28.dp),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = Color.Transparent,
                 unfocusedBorderColor = Color.Transparent,
@@ -168,13 +172,10 @@ fun LoginScreen(
             TextButton(
                 onClick = { /* TODO: Handle forgot password */ },
                 colors = ButtonDefaults.textButtonColors(
-                    contentColor = Color(0xFFE91E63)
+                    contentColor = Color(0xFFDB5461)
                 )
             ) {
-                Text(
-                    "Forgot Password?",
-                    fontSize = 16.sp
-                )
+                Text("Forgot Password?", fontSize = 16.sp)
             }
         }
 
@@ -190,7 +191,7 @@ fun LoginScreen(
                 .height(56.dp),
             shape = RoundedCornerShape(28.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFE91E63)
+                containerColor = Color(0xFFDB5461)
             )
         ) {
             Text(
@@ -208,23 +209,17 @@ fun LoginScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Dont have an account yet? ",
+                text = "Don't have an account yet? ",
                 color = Color(0xFF9E9E9E),
                 fontSize = 16.sp
             )
             TextButton(
                 onClick = onSignUpClick,
                 colors = ButtonDefaults.textButtonColors(
-                    contentColor = Color(0xFFE91E63)
+                    contentColor = Color(0xFFDB5461)
                 )
             ) {
-                Text(
-                    text = "Sign Up",
-                    fontSize = 16.sp,
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline
-                    )
-                )
+                Text("Sign Up", fontSize = 14.sp, fontWeight = FontWeight.Medium)
             }
         }
     }
