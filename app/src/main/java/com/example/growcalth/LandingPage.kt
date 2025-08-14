@@ -242,34 +242,7 @@ fun HomeTab() {
 
 @Composable
 fun NapfaTab() {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Icon(
-            imageVector = Icons.Default.Person,
-            contentDescription = "NAPFA",
-            modifier = Modifier.size(80.dp),
-            tint = Color(0xFFE53E3E)
-        )
-        Spacer(modifier = Modifier.height(24.dp))
-        Text(
-            text = "NAPFA",
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.Black
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-        Text(
-            text = "Track your fitness assessments",
-            fontSize = 16.sp,
-            color = Color.Gray,
-            textAlign = TextAlign.Center
-        )
-    }
+    NapfaScreen()
 }
 
 @Composable
