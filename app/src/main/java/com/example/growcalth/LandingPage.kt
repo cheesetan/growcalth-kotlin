@@ -18,6 +18,8 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Star
+
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -32,6 +34,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.example.growcalth.ui.theme.GrowCalthTheme
 import kotlin.math.cos
 import kotlin.math.sin
@@ -51,14 +55,16 @@ class LandingPageActivity : ComponentActivity() {
 enum class Destination(val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector) {
     HOME("Home", Icons.Default.Home),
     ANNOUNCEMENTS(" Updates", Icons.Default.Notifications),
+    CHALLENGES("CHALLENGES", Icons.Default.Star),
     NAPFA("NAPFA", Icons.Default.Person),
-    SETTINGS("Settings", Icons.Default.Settings)
+    SETTINGS("Settings", Icons.Default.Settings),
 }
 
 @Composable
 fun LandingPage(modifier: Modifier = Modifier) {
     val startDestination = Destination.HOME
     var selectedDestination by rememberSaveable { mutableIntStateOf(startDestination.ordinal) }
+    var showGoalDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = modifier,
@@ -73,8 +79,9 @@ fun LandingPage(modifier: Modifier = Modifier) {
                     text = when (selectedDestination) {
                         0 -> "Home"
                         1 -> "Updates"
-                        2 -> "NAPFA"
-                        3 -> "Settings"
+                        2 -> "Challenges"
+                        3 -> "NAPFA"
+                        4 -> "Settings"
                         else -> "Home"
                     },
                     fontSize = 32.sp,
@@ -138,17 +145,177 @@ fun LandingPage(modifier: Modifier = Modifier) {
                 .padding(contentPadding)
         ) {
             when (selectedDestination) {
-                0 -> HomeTab()
+                0 -> HomeTab(onGoalClick = { showGoalDialog = true })
                 1 -> AnnouncementsTab()
-                2 -> NapfaTab()
-                3 -> SettingsTab()
+                2 -> ChallengesScreen()
+                3 -> NapfaTab()
+                4 -> SettingsTab()
+            }
+        }
+    }
+
+    // Goal Dialog
+    if (showGoalDialog) {
+        GoalDialog(onDismiss = { showGoalDialog = false })
+    }
+}
+
+@Composable
+fun GoalDialog(onDismiss: () -> Unit) {
+    var stepsGoal by remember { mutableStateOf(2700) }
+    var distanceGoal by remember { mutableStateOf(2500) }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true
+        )
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            shape = RoundedCornerShape(20.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                Text(
+                    text = "Edit Goal",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+
+                // Steps Goal
+                GoalItem(
+                    label = "Steps",
+                    value = stepsGoal,
+                    onValueChange = { stepsGoal = it },
+                    onDecrease = { if (stepsGoal > 100) stepsGoal -= 100 },
+                    onIncrease = { stepsGoal += 100 }
+                )
+
+                // Distance Goal
+                GoalItem(
+                    label = "Distance",
+                    value = distanceGoal,
+                    onValueChange = { distanceGoal = it },
+                    onDecrease = { if (distanceGoal > 100) distanceGoal -= 100 },
+                    onIncrease = { distanceGoal += 100 }
+                )
+
+                // Save Button (non-functional)
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE53E3E)),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        text = "Save Goals",
+                        color = Color.White,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-fun HomeTab() {
+fun GoalItem(
+    label: String,
+    value: Int,
+    onValueChange: (Int) -> Unit,
+    onDecrease: () -> Unit,
+    onIncrease: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Gray circle
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .background(Color.Gray, shape = androidx.compose.foundation.shape.CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                // Empty circle, just for visual
+            }
+
+            Text(
+                text = label,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color.Black
+            )
+
+            Text(
+                text = value.toString(),
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Normal,
+                color = Color.Gray
+            )
+        }
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // Decrease button
+            IconButton(
+                onClick = onDecrease,
+                modifier = Modifier
+                    .size(32.dp)
+                    .background(
+                        Color.Gray.copy(alpha = 0.2f),
+                        shape = androidx.compose.foundation.shape.CircleShape
+                    )
+            ) {
+                Text(
+                    text = "−",
+                    color = Color.Gray,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            // Increase button
+            IconButton(
+                onClick = onIncrease,
+                modifier = Modifier
+                    .size(32.dp)
+                    .background(
+                        Color(0xFFE53E3E),
+                        shape = androidx.compose.foundation.shape.CircleShape
+                    )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Increase",
+                    tint = Color.White,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun HomeTab(onGoalClick: () -> Unit = {}) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -209,7 +376,7 @@ fun HomeTab() {
         Spacer(modifier = Modifier.height(32.dp))
 
         Button(
-            onClick = { },
+            onClick = onGoalClick,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
