@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -36,9 +37,23 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.Offset
 import com.example.growcalth.ui.theme.GrowCalthTheme
+import com.example.growcalth.ui.theme.Accent
+import com.example.growcalth.ui.theme.Surface
+import com.example.growcalth.ui.theme.OnSurface
+import com.example.growcalth.ui.theme.SurfaceVariant
+import com.example.growcalth.ui.theme.Gold
+import com.example.growcalth.ui.theme.Success
+import com.example.growcalth.ui.theme.Info
 import kotlin.math.cos
 import kotlin.math.sin
+import com.example.growcalth.LeaderboardActivity
+import com.example.growcalth.NapfaScreen
+import com.example.growcalth.ChallengesScreen
+import com.example.growcalth.AnnouncementsTab
+import com.example.growcalth.SettingsTab
 
 class LandingPageActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -54,8 +69,8 @@ class LandingPageActivity : ComponentActivity() {
 
 enum class Destination(val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector) {
     HOME("Home", Icons.Default.Home),
-    ANNOUNCEMENTS(" Updates", Icons.Default.Notifications),
-    CHALLENGES("CHALLENGES", Icons.Default.Star),
+    ANNOUNCEMENTS("Updates", Icons.Default.Notifications),
+    CHALLENGES("Challenges", Icons.Default.Star),
     NAPFA("NAPFA", Icons.Default.Person),
     SETTINGS("Settings", Icons.Default.Settings),
 }
@@ -72,7 +87,7 @@ fun LandingPage(modifier: Modifier = Modifier) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color.White)
+                    .background(MaterialTheme.colorScheme.surface)
                     .padding(horizontal = 20.dp, vertical = 16.dp)
             ) {
                 Text(
@@ -86,19 +101,21 @@ fun LandingPage(modifier: Modifier = Modifier) {
                     },
                     fontSize = 32.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.Black
+                    color = MaterialTheme.colorScheme.onSurface
                 )
 
                 if (selectedDestination == 0) {
                     Spacer(modifier = Modifier.height(12.dp))
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF374151)),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                        ),
                         shape = RoundedCornerShape(16.dp)
                     ) {
                         Text(
                             text = "You are unable to earn GrowCalth points.",
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 15.sp,
                             modifier = Modifier.padding(20.dp)
                         )
@@ -108,7 +125,7 @@ fun LandingPage(modifier: Modifier = Modifier) {
         },
         bottomBar = {
             NavigationBar(
-                containerColor = Color.White,
+                containerColor = MaterialTheme.colorScheme.surface,
                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
             ) {
                 Destination.entries.forEachIndexed { index, destination ->
@@ -117,7 +134,7 @@ fun LandingPage(modifier: Modifier = Modifier) {
                             Icon(
                                 imageVector = destination.icon,
                                 contentDescription = destination.label,
-                                tint = if (selectedDestination == index) Color(0xFFE53E3E) else Color.Gray,
+                                tint = if (selectedDestination == index) Accent else MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(24.dp)
                             )
                         },
@@ -125,7 +142,7 @@ fun LandingPage(modifier: Modifier = Modifier) {
                             Text(
                                 text = destination.label,
                                 maxLines = 1,
-                                color = if (selectedDestination == index) Color(0xFFE53E3E) else Color.Black,
+                                color = if (selectedDestination == index) Accent else MaterialTheme.colorScheme.onSurface,
                                 fontSize = 12.sp,
                                 fontWeight = if (selectedDestination == index) FontWeight.Bold else FontWeight.Normal
                             )
@@ -176,7 +193,7 @@ fun GoalDialog(onDismiss: () -> Unit) {
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             shape = RoundedCornerShape(20.dp)
         ) {
             Column(
@@ -187,7 +204,7 @@ fun GoalDialog(onDismiss: () -> Unit) {
                     text = "Edit Goal",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.Black
+                    color = MaterialTheme.colorScheme.onSurface
                 )
 
                 // Steps Goal
@@ -214,12 +231,12 @@ fun GoalDialog(onDismiss: () -> Unit) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(48.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE53E3E)),
+                    colors = ButtonDefaults.buttonColors(containerColor = Accent),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
                         text = "Save Goals",
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onPrimary,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Medium
                     )
@@ -245,19 +262,15 @@ fun GoalItem(
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         // Decrease button (far left)
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .background(
-                    Color.Gray.copy(alpha = 0.3f),
-                    shape = androidx.compose.foundation.shape.CircleShape
-                )
-                .clickable { onDecrease() },
-            contentAlignment = Alignment.Center
+        FilledTonalButton(
+            onClick = { onDecrease() },
+            modifier = Modifier.size(40.dp),
+            shape = androidx.compose.foundation.shape.CircleShape,
+            contentPadding = PaddingValues(0.dp)
         ) {
             Text(
                 text = "−",
-                color = Color.Gray,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -268,7 +281,7 @@ fun GoalItem(
             text = label,
             fontSize = 16.sp,
             fontWeight = FontWeight.Medium,
-            color = Color.Black
+            color = MaterialTheme.colorScheme.onSurface
         )
 
         // Value
@@ -276,25 +289,22 @@ fun GoalItem(
             text = value.toString(),
             fontSize = 16.sp,
             fontWeight = FontWeight.Normal,
-            color = Color.Gray
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
         Spacer(modifier = Modifier.weight(1f))
 
         // Increase button (far right)
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .background(
-                    Color(0xFFE53E3E),
-                    shape = androidx.compose.foundation.shape.CircleShape
-                )
-                .clickable { onIncrease() },
-            contentAlignment = Alignment.Center
+        FilledTonalButton(
+            onClick = { onIncrease() },
+            modifier = Modifier.size(40.dp),
+            shape = androidx.compose.foundation.shape.CircleShape,
+            contentPadding = PaddingValues(0.dp),
+            colors = ButtonDefaults.filledTonalButtonColors(containerColor = Accent)
         ) {
             Text(
                 text = "+",
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onPrimary,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -308,10 +318,38 @@ fun HomeTab(onGoalClick: () -> Unit = {}) {
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .background(Color.White)
-            .padding(horizontal = 20.dp, vertical = 16.dp)
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(horizontal = 24.dp, vertical = 20.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // Welcome Section
+        Text(
+            text = "Welcome back!",
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Keep up the great work on your fitness journey",
+            fontSize = 16.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // Health Metrics Section
+        Text(
+            text = "Today's Progress",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -336,39 +374,52 @@ fun HomeTab(onGoalClick: () -> Unit = {}) {
 
         Spacer(modifier = Modifier.height(32.dp))
 
+        // Leaderboard Section
+        Text(
+            text = "Leaderboard",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+
         Column(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.padding(horizontal = 4.dp)
         ) {
-            LeaderboardItem("1ST", "7,293 POINTS", Color(0xFFFFD700))
-            LeaderboardItem("2ND", "6,780 POINTS", Color(0xFF22C55E))
-            LeaderboardItem("3RD", "6,739 POINTS", Color(0xFF3B82F6))
+            LeaderboardItem("1ST", "7,293 POINTS", Gold)
+            LeaderboardItem("2ND", "6,780 POINTS", Success)
+            LeaderboardItem("3RD", "6,739 POINTS", Info)
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         val context = LocalContext.current
-        Text(
-            text = "view more >",
-            color = Color.Black,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier
-                .align(Alignment.End)
-                .padding(end = 8.dp)
-                .clickable {
-                    context.startActivity(Intent(context, LeaderboardActivity::class.java))
-                }
-        )
+        TextButton(
+            onClick = {
+                context.startActivity(Intent(context, LeaderboardActivity::class.java))
+            },
+            modifier = Modifier.align(Alignment.End)
+        ) {
+            Text(
+                text = "View more >",
+                color = Accent,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium
+            )
+        }
 
         Spacer(modifier = Modifier.height(32.dp))
 
+        // Goal Button
         Button(
             onClick = onGoalClick,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE53E3E)),
+                .height(64.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Accent
+            ),
             shape = RoundedCornerShape(16.dp)
         ) {
             Row(
@@ -377,21 +428,21 @@ fun HomeTab(onGoalClick: () -> Unit = {}) {
             ) {
                 Text(
                     text = "What's your next goal?",
-                    color = Color.White,
-                    fontSize = 16.sp,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f)
                 )
                 Icon(
                     imageVector = Icons.Default.Add,
                     contentDescription = "Add",
-                    tint = Color.White,
-                    modifier = Modifier.size(20.dp)
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(24.dp)
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(40.dp))
+        Spacer(modifier = Modifier.height(20.dp))
     }
 }
 
@@ -410,7 +461,9 @@ fun HealthMetricCard(
 ) {
     Card(
         modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF374151)),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+        ),
         shape = RoundedCornerShape(20.dp)
     ) {
         Column(
@@ -422,6 +475,7 @@ fun HealthMetricCard(
                 contentAlignment = Alignment.Center
             ) {
                 // Background circle
+                val backgroundColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
                 Canvas(
                     modifier = Modifier.size(110.dp)
                 ) {
@@ -430,24 +484,24 @@ fun HealthMetricCard(
 
                     // Background arc
                     drawArc(
-                        color = Color.Gray.copy(alpha = 0.3f),
+                        color = backgroundColor,
                         startAngle = -90f,
                         sweepAngle = 360f,
                         useCenter = false,
                         style = Stroke(width = strokeWidth, cap = StrokeCap.Round),
-                        size = androidx.compose.ui.geometry.Size(radius * 2, radius * 2),
-                        topLeft = androidx.compose.ui.geometry.Offset(strokeWidth / 2, strokeWidth / 2)
+                        size = Size(radius * 2, radius * 2),
+                        topLeft = Offset(strokeWidth / 2, strokeWidth / 2)
                     )
 
                     // Progress arc
                     drawArc(
-                        color = Color(0xFFE53E3E),
+                        color = Accent,
                         startAngle = -90f,
                         sweepAngle = 360f * progress,
                         useCenter = false,
                         style = Stroke(width = strokeWidth, cap = StrokeCap.Round),
-                        size = androidx.compose.ui.geometry.Size(radius * 2, radius * 2),
-                        topLeft = androidx.compose.ui.geometry.Offset(strokeWidth / 2, strokeWidth / 2)
+                        size = Size(radius * 2, radius * 2),
+                        topLeft = Offset(strokeWidth / 2, strokeWidth / 2)
                     )
                 }
 
@@ -458,14 +512,14 @@ fun HealthMetricCard(
                 ) {
                     Text(
                         text = value,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center
                     )
                     Text(
                         text = unit,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
                         textAlign = TextAlign.Center
@@ -477,7 +531,7 @@ fun HealthMetricCard(
 
             Text(
                 text = remaining,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
                 textAlign = TextAlign.Center
@@ -503,7 +557,7 @@ fun LeaderboardItem(
         Box(
             modifier = Modifier
                 .background(
-                    color = Color(0xFF374151),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
                     shape = RoundedCornerShape(25.dp)
                 )
                 .padding(horizontal = 20.dp, vertical = 12.dp),
@@ -511,7 +565,7 @@ fun LeaderboardItem(
         ) {
             Text(
                 text = position,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -522,7 +576,7 @@ fun LeaderboardItem(
             modifier = Modifier
                 .weight(1f)
                 .background(
-                    color = color,
+                    color = color.copy(alpha = 0.8f),
                     shape = RoundedCornerShape(25.dp)
                 )
                 .padding(horizontal = 20.dp, vertical = 12.dp),
@@ -530,7 +584,7 @@ fun LeaderboardItem(
         ) {
             Text(
                 text = points,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onPrimary,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold
             )

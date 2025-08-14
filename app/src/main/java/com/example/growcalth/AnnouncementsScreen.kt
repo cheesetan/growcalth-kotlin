@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -20,6 +21,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.growcalth.ui.theme.Accent
+import com.example.growcalth.ui.theme.Surface
+import com.example.growcalth.ui.theme.OnSurface
+import com.example.growcalth.ui.theme.SurfaceVariant
+import com.example.growcalth.ui.theme.OnSurfaceVariant
 
 @Composable
 fun AnnouncementsTab(
@@ -30,7 +36,7 @@ fun AnnouncementsTab(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.surface)
     ) {
         Column(
             modifier = Modifier
@@ -40,7 +46,7 @@ fun AnnouncementsTab(
             // Segmented Control
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFF3F4F6)),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Row(
@@ -51,7 +57,7 @@ fun AnnouncementsTab(
                         modifier = Modifier
                             .weight(1f)
                             .background(
-                                if (selectedTab == 0) Color.White else Color.Transparent,
+                                if (selectedTab == 0) MaterialTheme.colorScheme.surface else androidx.compose.ui.graphics.Color.Transparent,
                                 RoundedCornerShape(12.dp)
                             )
                             .clickable { selectedTab = 0 }
@@ -62,7 +68,7 @@ fun AnnouncementsTab(
                             text = "Announcements",
                             fontSize = 14.sp,
                             fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Normal,
-                            color = Color.Black
+                            color = if (selectedTab == 0) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     
@@ -71,7 +77,7 @@ fun AnnouncementsTab(
                         modifier = Modifier
                             .weight(1f)
                             .background(
-                                if (selectedTab == 1) Color.White else Color.Transparent,
+                                if (selectedTab == 1) MaterialTheme.colorScheme.surface else androidx.compose.ui.graphics.Color.Transparent,
                                 RoundedCornerShape(12.dp)
                             )
                             .clickable { selectedTab = 1 }
@@ -82,7 +88,7 @@ fun AnnouncementsTab(
                             text = "Events",
                             fontSize = 14.sp,
                             fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Normal,
-                            color = Color.Black
+                            color = if (selectedTab == 1) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -103,8 +109,8 @@ fun AnnouncementsTab(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(bottom = 16.dp, end = 16.dp),
-            containerColor = Color(0xFFE53E3E),
-            contentColor = Color.White,
+            containerColor = Accent,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
             shape = RoundedCornerShape(16.dp)
         ) {
             Icon(
@@ -170,20 +176,20 @@ fun EventsContent() {
             imageVector = Icons.Default.Notifications,
             contentDescription = "Events",
             modifier = Modifier.size(80.dp),
-            tint = Color(0xFFE53E3E)
+            tint = Accent
         )
         Spacer(modifier = Modifier.height(24.dp))
         Text(
             text = "Events",
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
-            color = Color.Black
+            color = MaterialTheme.colorScheme.onSurface
         )
         Spacer(modifier = Modifier.height(12.dp))
         Text(
             text = "No events available",
             fontSize = 16.sp,
-            color = Color.Gray,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
         )
     }
@@ -201,7 +207,7 @@ fun AnnouncementCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onCardClick() },
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         shape = RoundedCornerShape(12.dp)
     ) {
@@ -219,7 +225,7 @@ fun AnnouncementCard(
                     text = title,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.Black,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -232,7 +238,7 @@ fun AnnouncementCard(
                     Text(
                         text = snippet,
                         fontSize = 14.sp,
-                        color = Color.Gray,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f)
@@ -243,7 +249,7 @@ fun AnnouncementCard(
                     Text(
                         text = timestamp,
                         fontSize = 12.sp,
-                        color = Color.Gray
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -252,7 +258,7 @@ fun AnnouncementCard(
             Icon(
                 imageVector = Icons.Default.PlayArrow,
                 contentDescription = "Play",
-                tint = Color(0xFF6B7280),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(20.dp)
             )
         }

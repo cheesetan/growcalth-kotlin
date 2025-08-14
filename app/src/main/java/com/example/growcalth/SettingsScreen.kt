@@ -18,13 +18,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.growcalth.ui.theme.Accent
+import com.example.growcalth.ui.theme.Surface
+import com.example.growcalth.ui.theme.OnSurface
+import com.example.growcalth.ui.theme.SurfaceVariant
+import com.example.growcalth.ui.theme.OnSurfaceVariant
+import com.example.growcalth.ui.theme.Success
 
 @Composable
 fun SettingsTab() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF8F9FA))
+            .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 16.dp)
     ) {
@@ -52,7 +58,7 @@ fun SettingsSection(
             text = title,
             fontSize = 12.sp,
             fontWeight = FontWeight.Medium,
-            color = Color(0xFF9CA3AF),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             letterSpacing = 1.sp,
             modifier = Modifier.padding(bottom = 16.dp)
         )
@@ -64,7 +70,7 @@ fun SettingsSection(
 fun AccountCard() {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         shape = RoundedCornerShape(12.dp)
     ) {
@@ -79,12 +85,12 @@ fun AccountCard() {
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFFE53E3E)),
+                    .background(Accent),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = "C",
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onPrimary,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -97,25 +103,25 @@ fun AccountCard() {
                     text = "chay_yu_hung@s20",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium,
-                    color = Color.Black
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = "21.ssts.edu.sg",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium,
-                    color = Color.Black
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = "Tap to view account information",
                     fontSize = 14.sp,
-                    color = Color(0xFF9CA3AF)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
             Icon(
                 imageVector = Icons.Default.KeyboardArrowRight,
                 contentDescription = "Arrow Right",
-                tint = Color(0xFFD1D5DB)
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
@@ -127,7 +133,7 @@ fun AppearanceSelector() {
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         shape = RoundedCornerShape(12.dp)
     ) {
@@ -148,7 +154,7 @@ fun AppearanceSelector() {
             Text(
                 text = "Automatic sets GrowCalth's appearance based on your device's appearance.",
                 fontSize = 14.sp,
-                color = Color(0xFF9CA3AF),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 lineHeight = 20.sp
             )
         }
@@ -165,7 +171,7 @@ fun AppearanceOption(
     Box(
         modifier = Modifier
             .background(
-                if (selectedAppearance == index) Color(0xFFE5E7EB) else Color.Transparent,
+                if (selectedAppearance == index) MaterialTheme.colorScheme.surfaceVariant else androidx.compose.ui.graphics.Color.Transparent,
                 RoundedCornerShape(8.dp)
             )
             .clickable { onClick(index) }
@@ -176,7 +182,7 @@ fun AppearanceOption(
             text = label,
             fontSize = 14.sp,
             fontWeight = if (selectedAppearance == index) FontWeight.Medium else FontWeight.Normal,
-            color = Color.Black
+            color = if (selectedAppearance == index) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
         )
     }
 }
@@ -187,7 +193,7 @@ fun SpecularHighlightsCard() {
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         shape = RoundedCornerShape(12.dp)
     ) {
@@ -204,13 +210,13 @@ fun SpecularHighlightsCard() {
                     text = "Motion-based",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium,
-                    color = Color.Black
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = "Specular Highlights",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium,
-                    color = Color.Black
+                    color = MaterialTheme.colorScheme.onSurface
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -218,7 +224,7 @@ fun SpecularHighlightsCard() {
                 Text(
                     text = "Motion-based specular highlights shifts the angle of reflection of light based on device rotation. Enabling this feature might impact performance.",
                     fontSize = 14.sp,
-                    color = Color(0xFF9CA3AF),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     lineHeight = 20.sp
                 )
             }
@@ -227,10 +233,10 @@ fun SpecularHighlightsCard() {
                 checked = motionSpecularEnabled,
                 onCheckedChange = { motionSpecularEnabled = it },
                 colors = SwitchDefaults.colors(
-                    checkedThumbColor = Color.White,
-                    checkedTrackColor = Color(0xFF34D399),
-                    uncheckedThumbColor = Color.White,
-                    uncheckedTrackColor = Color(0xFFD1D5DB)
+                    checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                    checkedTrackColor = Success,
+                    uncheckedThumbColor = MaterialTheme.colorScheme.onSurface,
+                    uncheckedTrackColor = MaterialTheme.colorScheme.outlineVariant
                 )
             )
         }
@@ -241,7 +247,7 @@ fun SpecularHighlightsCard() {
 fun PermissionsCard() {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         shape = RoundedCornerShape(12.dp)
     ) {
@@ -255,13 +261,13 @@ fun PermissionsCard() {
                 text = "Open GrowCalth",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium,
-                color = Color(0xFFE53E3E)
+                color = Accent
             )
             Text(
                 text = "Notification Settings",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium,
-                color = Color(0xFFE53E3E)
+                color = Accent
             )
         }
     }

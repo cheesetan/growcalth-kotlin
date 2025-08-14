@@ -17,6 +17,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.growcalth.ui.theme.Accent
+import com.example.growcalth.ui.theme.Gold
+import com.example.growcalth.ui.theme.Surface
+import com.example.growcalth.ui.theme.OnSurface
+import com.example.growcalth.ui.theme.SurfaceVariant
+import com.example.growcalth.ui.theme.OnSurfaceVariant
 
 class ChallengesActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -36,7 +42,7 @@ data class LeaderboardEntry(
 @Composable
 fun ChallengesScreen() {
     val leaderboardData = listOf(
-        LeaderboardEntry("1ST", "240 Completed!", Color(0xFFFDD835)),
+        LeaderboardEntry("1ST", "240 Completed!", Gold),
         LeaderboardEntry("2ND", "8 Completed", Color(0xFF424242)),
         LeaderboardEntry("3RD", "4 Completed", Color(0xFF5C6BC0)),
         LeaderboardEntry("4TH", "2 Completed", Color(0xFF66BB6A)),
@@ -45,7 +51,7 @@ fun ChallengesScreen() {
 
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = Color(0xFFF5F5F5)
+        color = MaterialTheme.colorScheme.background
     ) {
         LazyColumn(
             modifier = Modifier
@@ -60,7 +66,7 @@ fun ChallengesScreen() {
                     Text(
                         text = "5 Challenges this week!",
                         fontSize = 14.sp,
-                        color = Color.Gray,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 4.dp)
                     )
                 }
@@ -73,10 +79,10 @@ fun ChallengesScreen() {
                         .fillMaxWidth()
                         .border(
                             2.dp,
-                            Color(0xFFE91E63),
+                            Accent,
                             RoundedCornerShape(12.dp)
                         ),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Column(
@@ -86,13 +92,13 @@ fun ChallengesScreen() {
                             text = "Challenge name",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Medium,
-                            color = Color(0xFFE91E63),
+                            color = Accent,
                             modifier = Modifier.padding(bottom = 4.dp)
                         )
                         Text(
                             text = "Double-tap to accept",
                             fontSize = 12.sp,
-                            color = Color.Gray,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(bottom = 16.dp)
                         )
 
@@ -107,7 +113,7 @@ fun ChallengesScreen() {
                                 Text(
                                     text = "Criteria 1 (100/1000)",
                                     fontSize = 12.sp,
-                                    color = Color.Black,
+                                    color = MaterialTheme.colorScheme.onSurface,
                                     modifier = Modifier.weight(1f)
                                 )
                             }
@@ -116,7 +122,7 @@ fun ChallengesScreen() {
                                     .fillMaxWidth()
                                     .height(8.dp)
                                     .background(
-                                        Color.Gray.copy(alpha = 0.3f),
+                                        MaterialTheme.colorScheme.outlineVariant,
                                         RoundedCornerShape(4.dp)
                                     )
                                     .padding(bottom = if (it == 0) 8.dp else 16.dp)
@@ -127,7 +133,7 @@ fun ChallengesScreen() {
                             text = "Reward: 1000 Points",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Medium,
-                            color = Color(0xFFE91E63)
+                            color = Accent
                         )
                     }
                 }
@@ -140,7 +146,7 @@ fun ChallengesScreen() {
                         text = "Challenge Leaderboard",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Medium,
-                        color = Color.Black,
+                        color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.padding(bottom = 16.dp)
                     )
 
@@ -162,7 +168,7 @@ fun ChallengesScreen() {
                 // Accepted Challenges Dropdown
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Row(
@@ -176,12 +182,12 @@ fun ChallengesScreen() {
                             text = "Accepted Challenges",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Medium,
-                            color = Color.Black
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = "▼",
                             fontSize = 12.sp,
-                            color = Color.Gray
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -203,7 +209,7 @@ fun LeaderboardRow(
     ) {
         // Position badge
         Card(
-            colors = CardDefaults.cardColors(containerColor = Color.White),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             shape = RoundedCornerShape(20.dp),
             modifier = Modifier.size(width = 60.dp, height = 32.dp)
         ) {
@@ -215,7 +221,7 @@ fun LeaderboardRow(
                     text = position,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.Black
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
         }
@@ -236,7 +242,7 @@ fun LeaderboardRow(
                     text = completed,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onPrimary,
                     textAlign = TextAlign.Center
                 )
             }

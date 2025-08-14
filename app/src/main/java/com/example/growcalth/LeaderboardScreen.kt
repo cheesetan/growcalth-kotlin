@@ -22,6 +22,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.growcalth.ui.theme.GrowCalthTheme
 import com.example.growcalth.ui.theme.ThemeMode
+import com.example.growcalth.ui.theme.Accent
+import com.example.growcalth.ui.theme.Gold
+import com.example.growcalth.ui.theme.Success
+import com.example.growcalth.ui.theme.Info
+import com.example.growcalth.ui.theme.Surface
+import com.example.growcalth.ui.theme.OnSurface
+import com.example.growcalth.ui.theme.SurfaceVariant
+import com.example.growcalth.ui.theme.OnSurfaceVariant
 
 class LeaderboardActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,13 +49,13 @@ fun LeaderboardScreen(onBackClick: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.surface)
     ) {
         // Header bar
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.White)
+                .background(MaterialTheme.colorScheme.surface)
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -55,14 +63,14 @@ fun LeaderboardScreen(onBackClick: () -> Unit) {
                 Icon(
                     Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
-                    tint = Color(0xFFE53E3E)
+                    tint = Accent
                 )
             }
             Text(
                 text = "Leaderboard",
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.Black,
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(start = 8.dp)
             )
         }
@@ -78,7 +86,7 @@ fun LeaderboardScreen(onBackClick: () -> Unit) {
                 modifier = Modifier
                     .padding(vertical = 32.dp)
                     .size(80.dp)
-                    .background(Color(0xFFFFD700), shape = RoundedCornerShape(20.dp)),
+                    .background(Gold, shape = RoundedCornerShape(20.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -96,11 +104,11 @@ fun LeaderboardScreen(onBackClick: () -> Unit) {
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.Bottom
             ) {
-                PodiumColumn(3, 120.dp, Color(0xFF3B82F6), "6,739", "🐎")
+                PodiumColumn(3, 120.dp, Info, "6,739", "🐎")
                 Spacer(modifier = Modifier.width(12.dp))
-                PodiumColumn(1, 180.dp, Color(0xFFFFD700), "7,293", "🕊️")
+                PodiumColumn(1, 180.dp, Gold, "7,293", "🕊️")
                 Spacer(modifier = Modifier.width(12.dp))
-                PodiumColumn(2, 150.dp, Color(0xFF10B981), "6,780", "🐉")
+                PodiumColumn(2, 150.dp, Success, "6,780", "🐉")
             }
 
             // Extra ranks
@@ -111,7 +119,7 @@ fun LeaderboardScreen(onBackClick: () -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 LeaderboardRankItem("4TH", "6,566 POINTS", "🦄", Color(0xFF6B7280))
-                LeaderboardRankItem("5TH", "5,333 POINTS", "🔥", Color(0xFFE53E3E))
+                LeaderboardRankItem("5TH", "5,333 POINTS", "🔥", Accent)
             }
         }
     }
@@ -147,7 +155,7 @@ fun PodiumColumn(
                     modifier = Modifier
                         .size(48.dp)
                         .clip(CircleShape)
-                        .background(Color.White),
+                        .background(MaterialTheme.colorScheme.surface),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -162,7 +170,7 @@ fun PodiumColumn(
                 // Points text
                 Text(
                     text = points,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onPrimary,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center
@@ -190,7 +198,7 @@ fun LeaderboardRankItem(
         Box(
             modifier = Modifier
                 .background(
-                    color = Color(0xFF374151),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
                     shape = RoundedCornerShape(32.dp)
                 )
                 .padding(horizontal = 20.dp, vertical = 16.dp),
@@ -198,7 +206,7 @@ fun LeaderboardRankItem(
         ) {
             Text(
                 text = position,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -224,7 +232,7 @@ fun LeaderboardRankItem(
                     modifier = Modifier
                         .size(40.dp)
                         .clip(CircleShape)
-                        .background(Color.White),
+                        .background(MaterialTheme.colorScheme.surface),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(text = emoji, fontSize = 20.sp, textAlign = TextAlign.Center)
@@ -234,7 +242,7 @@ fun LeaderboardRankItem(
 
                 Text(
                     text = points,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onPrimary,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )

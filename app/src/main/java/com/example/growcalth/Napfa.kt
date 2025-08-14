@@ -15,6 +15,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.growcalth.ui.theme.Surface
+import com.example.growcalth.ui.theme.OnSurface
+import com.example.growcalth.ui.theme.SurfaceVariant
+import com.example.growcalth.ui.theme.OnSurfaceVariant
+import com.example.growcalth.ui.theme.OutlineVariant
 
 class NapfaActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -52,7 +57,7 @@ fun NapfaScreen() {
 
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = Color.White
+        color = MaterialTheme.colorScheme.surface
     ) {
         LazyColumn(
             modifier = Modifier
@@ -89,95 +94,103 @@ fun TestSection(
             text = title,
             fontSize = 18.sp,
             fontWeight = FontWeight.SemiBold,
-            color = Color.Black,
+            color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
         // Table
-        Column {
-            // Header Row
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color(0xFFF5F5F5))
-                    .padding(vertical = 12.dp, horizontal = 16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = "#",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color.Black,
-                    modifier = Modifier.weight(0.8f)
-                )
-                Text(
-                    text = "Name",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color.Black,
-                    modifier = Modifier.weight(2f)
-                )
-                Text(
-                    text = "Class",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color.Black,
-                    modifier = Modifier.weight(1.2f),
-                    textAlign = TextAlign.Center
-                )
-                Text(
-                    text = "Score",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color.Black,
-                    modifier = Modifier.weight(1f),
-                    textAlign = TextAlign.End
-                )
-            }
-
-            // Data Rows
-            results.forEach { student ->
+        Card(
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            shape = MaterialTheme.shapes.medium
+        ) {
+            Column {
+                // Header Row
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color.White)
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
                         .padding(vertical = 12.dp, horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = student.rank,
+                        text = "#",
                         fontSize = 14.sp,
-                        color = Color.Black,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.weight(0.8f)
                     )
                     Text(
-                        text = student.name,
+                        text = "Name",
                         fontSize = 14.sp,
-                        color = Color.Black,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.weight(2f)
                     )
                     Text(
-                        text = student.className,
+                        text = "Class",
                         fontSize = 14.sp,
-                        color = Color.Black,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.weight(1.2f),
                         textAlign = TextAlign.Center
                     )
                     Text(
-                        text = student.score,
+                        text = "Score",
                         fontSize = 14.sp,
-                        color = Color.Black,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.weight(1f),
                         textAlign = TextAlign.End
                     )
                 }
 
-                // Divider
-                HorizontalDivider(
-                    color = Color(0xFFE0E0E0),
-                    thickness = 0.5.dp
-                )
+                // Data Rows
+                results.forEachIndexed { index, student ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.surface)
+                            .padding(vertical = 12.dp, horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = student.rank,
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.weight(0.8f)
+                        )
+                        Text(
+                            text = student.name,
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.weight(2f)
+                        )
+                        Text(
+                            text = student.className,
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.weight(1.2f),
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            text = student.score,
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.weight(1f),
+                            textAlign = TextAlign.End
+                        )
+                    }
+
+                    // Divider (only if not the last item)
+                    if (index < results.size - 1) {
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant,
+                            thickness = 0.5.dp
+                        )
+                    }
+                }
             }
         }
     }
