@@ -322,34 +322,6 @@ fun HomeTab(onGoalClick: () -> Unit = {}) {
             .padding(horizontal = 24.dp, vertical = 20.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.height(20.dp))
-
-        // Welcome Section
-        Text(
-            text = "Welcome back!",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
-            textAlign = TextAlign.Center
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = "Keep up the great work on your fitness journey",
-            fontSize = 16.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // Health Metrics Section
-        Text(
-            text = "Today's Progress",
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -474,38 +446,53 @@ fun HealthMetricCard(
                 modifier = Modifier.size(110.dp),
                 contentAlignment = Alignment.Center
             ) {
-                // Background circle
+                // Get colors outside of Canvas scope
                 val backgroundColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                val progressColor = Accent
+
                 Canvas(
-                    modifier = Modifier.size(110.dp)
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(4.dp) // Add equal padding on all sides
                 ) {
                     val strokeWidth = 8.dp.toPx()
-                    val radius = (size.width - strokeWidth) / 2
 
-                    // Background arc
+                    // Now the canvas has equal padding, so we can use the full size
+                    val canvasSize = minOf(size.width, size.height)
+                    val radius = (canvasSize - strokeWidth) / 2f
+                    val center = Offset(size.width / 2f, size.height / 2f)
+
+                    // Calculate the bounding rectangle for the arc
+                    val arcSize = Size(canvasSize - strokeWidth, canvasSize - strokeWidth)
+                    val topLeft = Offset(
+                        center.x - radius,
+                        center.y - radius
+                    )
+
+                    // Background arc (full circle)
                     drawArc(
                         color = backgroundColor,
                         startAngle = -90f,
                         sweepAngle = 360f,
                         useCenter = false,
                         style = Stroke(width = strokeWidth, cap = StrokeCap.Round),
-                        size = Size(radius * 2, radius * 2),
-                        topLeft = Offset(strokeWidth / 2, strokeWidth / 2)
+                        size = arcSize,
+                        topLeft = topLeft
                     )
 
                     // Progress arc
                     drawArc(
-                        color = Accent,
+                        color = progressColor,
                         startAngle = -90f,
                         sweepAngle = 360f * progress,
                         useCenter = false,
                         style = Stroke(width = strokeWidth, cap = StrokeCap.Round),
-                        size = Size(radius * 2, radius * 2),
-                        topLeft = Offset(strokeWidth / 2, strokeWidth / 2)
+                        size = arcSize,
+                        topLeft = topLeft
                     )
                 }
 
-                // Text content
+                // Text content - this will be centered by the Box's contentAlignment
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
