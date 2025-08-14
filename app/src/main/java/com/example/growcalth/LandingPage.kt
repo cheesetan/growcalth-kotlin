@@ -238,78 +238,66 @@ fun GoalItem(
     onIncrease: () -> Unit
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        // Decrease button (far left)
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .background(
+                    Color.Gray.copy(alpha = 0.3f),
+                    shape = androidx.compose.foundation.shape.CircleShape
+                )
+                .clickable { onDecrease() },
+            contentAlignment = Alignment.Center
         ) {
-            // Gray circle
-            Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .background(Color.Gray, shape = androidx.compose.foundation.shape.CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                // Empty circle, just for visual
-            }
-
             Text(
-                text = label,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium,
-                color = Color.Black
-            )
-
-            Text(
-                text = value.toString(),
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Normal,
-                color = Color.Gray
+                text = "−",
+                color = Color.Gray,
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold
             )
         }
 
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // Decrease button
-            IconButton(
-                onClick = onDecrease,
-                modifier = Modifier
-                    .size(32.dp)
-                    .background(
-                        Color.Gray.copy(alpha = 0.2f),
-                        shape = androidx.compose.foundation.shape.CircleShape
-                    )
-            ) {
-                Text(
-                    text = "−",
-                    color = Color.Gray,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+        // Label
+        Text(
+            text = label,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Medium,
+            color = Color.Black
+        )
 
-            // Increase button
-            IconButton(
-                onClick = onIncrease,
-                modifier = Modifier
-                    .size(32.dp)
-                    .background(
-                        Color(0xFFE53E3E),
-                        shape = androidx.compose.foundation.shape.CircleShape
-                    )
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Increase",
-                    tint = Color.White,
-                    modifier = Modifier.size(16.dp)
+        // Value
+        Text(
+            text = value.toString(),
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Normal,
+            color = Color.Gray
+        )
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        // Increase button (far right)
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .background(
+                    Color(0xFFE53E3E),
+                    shape = androidx.compose.foundation.shape.CircleShape
                 )
-            }
+                .clickable { onIncrease() },
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "+",
+                color = Color.White,
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold
+            )
         }
     }
 }
