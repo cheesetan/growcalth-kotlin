@@ -416,7 +416,6 @@ fun ContactAndSignOutCard() {
     }
 }
 
-// ACKNOWLEDGEMENTS SCREEN
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AcknowledgementsScreen(
@@ -430,7 +429,7 @@ fun AcknowledgementsScreen(
                         text = "Acknowledgements",
                         fontSize = 28.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 },
                 navigationIcon = {
@@ -443,15 +442,16 @@ fun AcknowledgementsScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Black
+                    containerColor = MaterialTheme.colorScheme.background
                 )
             )
         },
-        containerColor = Color.White
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp, vertical = 16.dp)
@@ -480,12 +480,12 @@ private fun AboutSection() {
                 modifier = Modifier
                     .size(24.dp)
                     .clip(CircleShape)
-                    .background(Color.Gray),
+                    .background(MaterialTheme.colorScheme.onSurfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = "?",
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.surface,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -497,7 +497,7 @@ private fun AboutSection() {
                 text = "ABOUT GROWCALTH",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
-                color = Color.Gray,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 letterSpacing = 1.sp
             )
         }
@@ -505,7 +505,7 @@ private fun AboutSection() {
         Text(
             text = "GrowCalth is a one stop platform that allows SST Students to participate in house challenges and further fosters house spirit among their house members. Through the app, students are able to be notified of house announcements and events, which encourages house participation and involvement.",
             fontSize = 16.sp,
-            color = Color.Black,
+            color = MaterialTheme.colorScheme.onSurface,
             lineHeight = 24.sp
         )
     }
@@ -522,7 +522,7 @@ private fun DevelopmentTeamSection() {
                 modifier = Modifier
                     .size(24.dp)
                     .clip(CircleShape)
-                    .background(Color.Gray),
+                    .background(MaterialTheme.colorScheme.onSurfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -537,7 +537,7 @@ private fun DevelopmentTeamSection() {
                 text = "DEVELOPMENT TEAM",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
-                color = Color.Gray,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 letterSpacing = 1.sp
             )
         }
@@ -595,18 +595,18 @@ private fun TeamMember(
                 text = name,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium,
-                color = Color.Black
+                color = MaterialTheme.colorScheme.onSurface
             )
             Text(
                 text = role,
                 fontSize = 16.sp,
-                color = Color.Black
+                color = MaterialTheme.colorScheme.onSurface
             )
             if (classYear.isNotEmpty()) {
                 Text(
                     text = classYear,
                     fontSize = 14.sp,
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

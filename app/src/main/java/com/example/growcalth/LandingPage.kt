@@ -72,7 +72,7 @@ class LandingPageActivity : ComponentActivity() {
 
 enum class Destination(val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector) {
     HOME("Home", Icons.Default.Home),
-    ANNOUNCEMENTS("Announcements", Icons.Default.Notifications),
+    ANNOUNCEMENTS("Updates", Icons.Default.Notifications),
     CHALLENGES("Challenges", Icons.Default.Star),
     NAPFA("NAPFA", Icons.Default.Person),
     SETTINGS("Settings", Icons.Default.Settings),
@@ -97,7 +97,7 @@ fun LandingPage(modifier: Modifier = Modifier) {
                 Text(
                     text = when (selectedDestination) {
                         0 -> "Home"
-                        1 -> "Announcements"
+                        1 -> "Updates"
                         2 -> "Challenges"
                         3 -> "NAPFA"
                         4 -> "Settings"
@@ -133,11 +133,11 @@ fun LandingPage(modifier: Modifier = Modifier) {
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 16.dp)
             ) {
-                // Neumorphic navigation bar with proper white border
+                // Responsive navigation bar
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(80.dp)
+                        .height(95.dp) // Fixed height - shorter than before
                         .clip(RoundedCornerShape(40.dp))
                         .background(
                             color = Color.White, // White border color
@@ -149,7 +149,7 @@ fun LandingPage(modifier: Modifier = Modifier) {
                             color = Color(0xFFF0F0F5), // Much lighter background
                             shape = RoundedCornerShape(36.dp)
                         )
-                        .padding(horizontal = 8.dp, vertical = 12.dp)
+                        .padding(horizontal = 8.dp, vertical = 10.dp) // Balanced padding
                 ) {
                     Row(
                         modifier = Modifier.fillMaxSize(),
@@ -197,45 +197,49 @@ fun NavigationItem(
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp), // Consistent spacing
         modifier = Modifier
             .clickable { onClick() }
-            .padding(vertical = 4.dp)
+            .fillMaxHeight() // Use full available height
+            .width(60.dp) // Fixed width for consistency
+            .padding(horizontal = 2.dp, vertical = 4.dp) // Responsive padding
     ) {
         // Icon with circular radial background for active tab
         Box(
             modifier = Modifier
-                .size(48.dp)
-                .padding(4.dp),
+                .size(32.dp) // Fixed responsive size
+                .aspectRatio(1f), // Keep it circular
             contentAlignment = Alignment.Center
         ) {
             // Circular radial background for active tab
             if (isSelected) {
                 Box(
                     modifier = Modifier
-                        .size(44.dp)
+                        .size(28.dp) // 90% of container size
                         .clip(CircleShape)
-                        .background(Color(0xFFFFCDD2)) // Light red circular background
+                        .background(Color(0xFFFFCDD2))
                 )
             }
-            
+
             Icon(
                 imageVector = destination.icon,
                 contentDescription = destination.label,
-                modifier = Modifier.size(28.dp),
+                modifier = Modifier.size(18.dp), // 60% of container size
                 tint = if (isSelected) Color(0xFFE91E63) else Color(0xFF424242)
             )
         }
-        
-        Spacer(modifier = Modifier.height(2.dp))
-        
-        // Label - make it very visible and closer to icon
+
+        // Label - responsive text
         Text(
             text = destination.label,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.ExtraBold,
-            color = Color.Red,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold,
+            color = if (isSelected) Color(0xFFE91E63) else Color(0xFF000000),
             textAlign = TextAlign.Center,
-            maxLines = 1
+            maxLines = 1,
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight()
         )
     }
 }
