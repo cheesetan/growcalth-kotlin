@@ -11,9 +11,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,11 +26,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.growcalth.ui.theme.GrowCalthTheme
-import com.example.growcalth.ui.theme.Accent
-import com.example.growcalth.ui.theme.Surface
-import com.example.growcalth.ui.theme.OnSurface
-import com.example.growcalth.ui.theme.SurfaceVariant
-import com.example.growcalth.ui.theme.OnSurfaceVariant
 import com.example.growcalth.LandingPageActivity
 import com.example.growcalth.SignUpActivity
 
@@ -44,7 +37,7 @@ class MainActivity : ComponentActivity() {
             GrowCalthTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+                    color = Color(0xFFFAFAFA)
                 ) {
                     LoginScreen(
                         modifier = Modifier.fillMaxSize(),
@@ -70,24 +63,25 @@ fun LoginScreen(
 
     Column(
         modifier = modifier
+            .background(Color(0xFFFAFAFA))
             .padding(horizontal = 32.dp, vertical = 24.dp)
             .fillMaxSize(),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Circle behind House Icon
+        // House Icon
         Box(
             modifier = Modifier
                 .size(120.dp)
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surface),
+                .background(Color.White),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Default.Home,
                 contentDescription = "House Icon",
-                modifier = Modifier.size(50.dp),
-                tint = Accent
+                modifier = Modifier.size(60.dp),
+                tint = Color(0xFFE91E63)
             )
         }
 
@@ -96,7 +90,8 @@ fun LoginScreen(
         Text(
             text = "Welcome Back",
             fontSize = 16.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.SemiBold,
+            color = Color(0xFF757575),
             textAlign = TextAlign.Center
         )
 
@@ -104,10 +99,10 @@ fun LoginScreen(
 
         Text(
             text = "The House You Need.",
-            fontSize = 32.sp,
-            fontWeight = FontWeight.Bold,
+            fontSize = 28.sp,
+            fontWeight = FontWeight.ExtraBold,
             textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onSurface
+            color = Color.Black
         )
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -115,79 +110,53 @@ fun LoginScreen(
         Text(
             text = "Sign in to contribute to your House",
             fontSize = 16.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.SemiBold,
+            color = Color(0xFF757575),
             textAlign = TextAlign.Center
         )
 
         Spacer(modifier = Modifier.height(48.dp))
 
-        // Email TextField with leading icon
+        // Email field
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
-            placeholder = { Text("School Email", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 16.sp) },
+            placeholder = { Text("School Email", color = Color(0xFF757575), fontSize = 16.sp) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Email,
-                    contentDescription = "Email Icon",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            },
             shape = RoundedCornerShape(28.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.outline,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                focusedContainerColor = MaterialTheme.colorScheme.surface,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                focusedBorderColor = Color.Transparent,
+                unfocusedBorderColor = Color.Transparent,
+                focusedContainerColor = Color.White,
+                unfocusedContainerColor = Color.White
             )
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Password TextField with leading icon
+        // Password field
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
-            placeholder = { Text("Password", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 16.sp) },
+            placeholder = { Text("Password", color = Color(0xFF757575), fontSize = 16.sp) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
             visualTransformation = PasswordVisualTransformation(),
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Lock,
-                    contentDescription = "Password Icon",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            },
             shape = RoundedCornerShape(28.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.outline,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                focusedContainerColor = MaterialTheme.colorScheme.surface,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                focusedBorderColor = Color.Transparent,
+                unfocusedBorderColor = Color.Transparent,
+                focusedContainerColor = Color.White,
+                unfocusedContainerColor = Color.White
             )
         )
 
-        Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.CenterEnd
-        ) {
-            TextButton(
-                onClick = { /* TODO: Handle forgot password */ },
-                colors = ButtonDefaults.textButtonColors(
-                    contentColor = Accent
-                )
-            ) {
-                Text("Forgot Password?", fontSize = 16.sp)
-            }
-        }
-
         Spacer(modifier = Modifier.height(32.dp))
 
+        // Login button
         Button(
             onClick = {
                 val intent = Intent(context, LandingPageActivity::class.java)
@@ -198,35 +167,36 @@ fun LoginScreen(
                 .height(56.dp),
             shape = RoundedCornerShape(28.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Accent
+                containerColor = Color(0xFFE91E63)
             )
         ) {
             Text(
                 text = "Login",
-                color = MaterialTheme.colorScheme.onPrimary,
+                color = Color.White,
                 fontSize = 18.sp,
-                fontWeight = FontWeight.Medium
+                fontWeight = FontWeight.SemiBold
             )
         }
 
         Spacer(modifier = Modifier.height(32.dp))
 
+        // Sign up text
         Row(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = "Don't have an account yet? ",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = Color(0xFF757575),
                 fontSize = 16.sp
             )
             TextButton(
                 onClick = onSignUpClick,
                 colors = ButtonDefaults.textButtonColors(
-                    contentColor = Accent
+                    contentColor = Color(0xFFE91E63)
                 )
             ) {
-                Text("Sign Up", fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                Text("Sign Up", fontSize = 16.sp, fontWeight = FontWeight.Medium)
             }
         }
     }

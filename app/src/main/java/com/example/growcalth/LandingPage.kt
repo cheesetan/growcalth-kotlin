@@ -10,6 +10,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -19,6 +20,8 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Favorite
 
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -69,7 +72,7 @@ class LandingPageActivity : ComponentActivity() {
 
 enum class Destination(val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector) {
     HOME("Home", Icons.Default.Home),
-    ANNOUNCEMENTS("Updates", Icons.Default.Notifications),
+    ANNOUNCEMENTS("Announcements", Icons.Default.Notifications),
     CHALLENGES("Challenges", Icons.Default.Star),
     NAPFA("NAPFA", Icons.Default.Person),
     SETTINGS("Settings", Icons.Default.Settings),
@@ -89,11 +92,12 @@ fun LandingPage(modifier: Modifier = Modifier) {
                     .fillMaxWidth()
                     .background(MaterialTheme.colorScheme.surface)
                     .padding(horizontal = 20.dp, vertical = 16.dp)
+                    .padding(top = 40.dp) // Add more space from top
             ) {
                 Text(
                     text = when (selectedDestination) {
                         0 -> "Home"
-                        1 -> "Updates"
+                        1 -> "Announcements"
                         2 -> "Challenges"
                         3 -> "NAPFA"
                         4 -> "Settings"
@@ -124,34 +128,42 @@ fun LandingPage(modifier: Modifier = Modifier) {
             }
         },
         bottomBar = {
-            NavigationBar(
-                containerColor = MaterialTheme.colorScheme.surface,
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 16.dp)
             ) {
-                Destination.entries.forEachIndexed { index, destination ->
-                    NavigationBarItem(
-                        icon = {
-                            Icon(
-                                imageVector = destination.icon,
-                                contentDescription = destination.label,
-                                tint = if (selectedDestination == index) Accent else MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(24.dp)
+                // Neumorphic navigation bar with proper white border
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(80.dp)
+                        .clip(RoundedCornerShape(40.dp))
+                        .background(
+                            color = Color.White, // White border color
+                            shape = RoundedCornerShape(40.dp)
+                        )
+                        .padding(4.dp) // 4 pixel white border
+                        .clip(RoundedCornerShape(36.dp))
+                        .background(
+                            color = Color(0xFFF0F0F5), // Much lighter background
+                            shape = RoundedCornerShape(36.dp)
+                        )
+                        .padding(horizontal = 8.dp, vertical = 12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Destination.entries.forEachIndexed { index, destination ->
+                            NavigationItem(
+                                destination = destination,
+                                isSelected = selectedDestination == index,
+                                onClick = { selectedDestination = index }
                             )
-                        },
-                        label = {
-                            Text(
-                                text = destination.label,
-                                maxLines = 1,
-                                color = if (selectedDestination == index) Accent else MaterialTheme.colorScheme.onSurface,
-                                fontSize = 12.sp,
-                                fontWeight = if (selectedDestination == index) FontWeight.Bold else FontWeight.Normal
-                            )
-                        },
-                        selected = selectedDestination == index,
-                        onClick = {
-                            selectedDestination = index
                         }
-                    )
+                    }
                 }
             }
         }
@@ -174,6 +186,57 @@ fun LandingPage(modifier: Modifier = Modifier) {
     // Goal Dialog
     if (showGoalDialog) {
         GoalDialog(onDismiss = { showGoalDialog = false })
+    }
+}
+
+@Composable
+fun NavigationItem(
+    destination: Destination,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .clickable { onClick() }
+            .padding(vertical = 4.dp)
+    ) {
+        // Icon with circular radial background for active tab
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .padding(4.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            // Circular radial background for active tab
+            if (isSelected) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFFFCDD2)) // Light red circular background
+                )
+            }
+            
+            Icon(
+                imageVector = destination.icon,
+                contentDescription = destination.label,
+                modifier = Modifier.size(28.dp),
+                tint = if (isSelected) Color(0xFFE91E63) else Color(0xFF424242)
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(2.dp))
+        
+        // Label - make it very visible and closer to icon
+        Text(
+            text = destination.label,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.ExtraBold,
+            color = Color.Red,
+            textAlign = TextAlign.Center,
+            maxLines = 1
+        )
     }
 }
 
