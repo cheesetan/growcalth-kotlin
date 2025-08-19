@@ -3,6 +3,7 @@ package com.example.growcalth
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -33,6 +34,7 @@ import com.example.growcalth.ui.theme.OnSurfaceVariant
 class LeaderboardActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setContent {
             // Just use a fixed theme mode without ViewModel
             GrowCalthTheme(themeMode = ThemeMode.AUTO) {
@@ -59,7 +61,7 @@ fun LeaderboardScreen(onBackClick: () -> Unit) {
         ) {
             IconButton(onClick = onBackClick) {
                 Icon(
-                    Icons.Filled.ArrowBack,
+                    Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
                     tint = Accent
                 )
