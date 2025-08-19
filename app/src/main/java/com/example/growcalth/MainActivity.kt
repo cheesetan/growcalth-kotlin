@@ -1,7 +1,10 @@
 package com.example.growcalth
 
+import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -28,10 +31,106 @@ import androidx.compose.ui.unit.sp
 import com.example.growcalth.ui.theme.GrowCalthTheme
 import com.example.growcalth.LandingPageActivity
 import com.example.growcalth.SignUpActivity
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+import androidx.lifecycle.lifecycleScope
+
+// Firebase imports
+import com.google.firebase.FirebaseApp
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.auth.auth
+import com.google.firebase.Firebase
+
+// Firebase Authentication Manager
+class FirebaseAuthManager(private val context: Context) {
+    private val auth: FirebaseAuth = Firebase.auth
+    private val sharedPrefs: SharedPreferences =
+        context.getSharedPreferences("growcalth_prefs", Context.MODE_PRIVATE)
+
+    companion object {
+        private const val KEY_IS_LOGGED_IN = "is_logged_in"
+        private const val KEY_USER_EMAIL = "user_email"
+        private const val KEY_USER_UID = "user_uid"
+    }
+
+    fun getCurrentUser(): FirebaseUser? = auth.currentUser
+
+    fun isLoggedIn(): Boolean {
+        val firebaseLoggedIn = auth.currentUser != null
+        val localLoggedIn = sharedPrefs.getBoolean(KEY_IS_LOGGED_IN, false)
+        return firebaseLoggedIn && localLoggedIn
+    }
+
+    fun getCurrentUserEmail(): String? = auth.currentUser?.email
+
+    private fun saveLoginState(user: FirebaseUser) {
+        sharedPrefs.edit().apply {
+            putBoolean(KEY_IS_LOGGED_IN, true)
+            putString(KEY_USER_EMAIL, user.email)
+            putString(KEY_USER_UID, user.uid)
+            apply()
+        }
+    }
+
+    fun logout() {
+        auth.signOut()
+        sharedPrefs.edit().clear().apply()
+    }
+
+    suspend fun signInUser(email: String, password: String): AuthResult {
+        return try {
+            val result = auth.signInWithEmailAndPassword(email, password).await()
+            val user = result.user
+
+            if (user != null) {
+                saveLoginState(user)
+                AuthResult.Success(user)
+            } else {
+                AuthResult.Error("Authentication failed")
+            }
+        } catch (e: Exception) {
+            when {
+                e.message?.contains("password") == true ||
+                        e.message?.contains("INVALID_LOGIN_CREDENTIALS") == true -> {
+                    AuthResult.Error("Invalid email or password")
+                }
+                e.message?.contains("network") == true -> {
+                    AuthResult.Error("Network error. Please check your connection")
+                }
+                e.message?.contains("too-many-requests") == true -> {
+                    AuthResult.Error("Too many failed attempts. Please try again later")
+                }
+                else -> {
+                    AuthResult.Error("Sign in failed: ${e.message ?: "Unknown error"}")
+                }
+            }
+        }
+    }
+}
+
+// Firebase Authentication Results
+sealed class AuthResult {
+    data class Success(val user: FirebaseUser) : AuthResult()
+    data class Error(val message: String) : AuthResult()
+}
 
 class MainActivity : ComponentActivity() {
+    private lateinit var authManager: FirebaseAuthManager
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Initialize Firebase
+        FirebaseApp.initializeApp(this)
+        authManager = FirebaseAuthManager(this)
+
+        // Check if user is already logged in
+        if (authManager.isLoggedIn()) {
+            navigateToLandingPage()
+            return
+        }
+
         enableEdgeToEdge()
         setContent {
             GrowCalthTheme {
@@ -40,12 +139,36 @@ class MainActivity : ComponentActivity() {
                     color = Color(0xFFFAFAFA)
                 ) {
                     LoginScreen(
+                        authManager = authManager,
                         modifier = Modifier.fillMaxSize(),
                         onSignUpClick = {
                             val intent = Intent(this, SignUpActivity::class.java)
                             startActivity(intent)
+                        },
+                        onLoginSuccess = {
+                            navigateToLandingPage()
                         }
                     )
+                }
+            }
+        }
+    }
+
+    private fun navigateToLandingPage() {
+        val intent = Intent(this, LandingPageActivity::class.java)
+        startActivity(intent)
+        finish()
+    }
+
+    private fun handleLogin(email: String, password: String) {
+        lifecycleScope.launch {
+            when (val result = authManager.signInUser(email, password)) {
+                is AuthResult.Success -> {
+                    Toast.makeText(this@MainActivity, "Welcome back!", Toast.LENGTH_SHORT).show()
+                    navigateToLandingPage()
+                }
+                is AuthResult.Error -> {
+                    Toast.makeText(this@MainActivity, result.message, Toast.LENGTH_LONG).show()
                 }
             }
         }
@@ -54,12 +177,36 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun LoginScreen(
+    authManager: FirebaseAuthManager,
     modifier: Modifier = Modifier,
-    onSignUpClick: () -> Unit
+    onSignUpClick: () -> Unit,
+    onLoginSuccess: () -> Unit
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
+
+    fun handleLogin() {
+        if (email.isNotBlank() && password.isNotBlank()) {
+            isLoading = true
+            scope.launch {
+                when (val result = authManager.signInUser(email, password)) {
+                    is AuthResult.Success -> {
+                        Toast.makeText(context, "Welcome back!", Toast.LENGTH_SHORT).show()
+                        onLoginSuccess()
+                    }
+                    is AuthResult.Error -> {
+                        Toast.makeText(context, result.message, Toast.LENGTH_LONG).show()
+                    }
+                }
+                isLoading = false
+            }
+        } else {
+            Toast.makeText(context, "Please fill in all fields", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     Column(
         modifier = modifier
@@ -131,7 +278,8 @@ fun LoginScreen(
                 unfocusedBorderColor = Color.Transparent,
                 focusedContainerColor = Color.White,
                 unfocusedContainerColor = Color.White
-            )
+            ),
+            enabled = !isLoading
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -151,31 +299,38 @@ fun LoginScreen(
                 unfocusedBorderColor = Color.Transparent,
                 focusedContainerColor = Color.White,
                 unfocusedContainerColor = Color.White
-            )
+            ),
+            enabled = !isLoading
         )
 
         Spacer(modifier = Modifier.height(32.dp))
 
         // Login button
         Button(
-            onClick = {
-                val intent = Intent(context, LandingPageActivity::class.java)
-                context.startActivity(intent)
-            },
+            onClick = { handleLogin() },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
             shape = RoundedCornerShape(28.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color(0xFFE91E63)
-            )
+            ),
+            enabled = !isLoading
         ) {
-            Text(
-                text = "Login",
-                color = Color.White,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.SemiBold
-            )
+            if (isLoading) {
+                CircularProgressIndicator(
+                    color = Color.White,
+                    modifier = Modifier.size(24.dp),
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Text(
+                    text = "Login",
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -194,7 +349,8 @@ fun LoginScreen(
                 onClick = onSignUpClick,
                 colors = ButtonDefaults.textButtonColors(
                     contentColor = Color(0xFFE91E63)
-                )
+                ),
+                enabled = !isLoading
             ) {
                 Text("Sign Up", fontSize = 16.sp, fontWeight = FontWeight.Medium)
             }

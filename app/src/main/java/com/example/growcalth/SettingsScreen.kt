@@ -27,6 +27,7 @@ import com.example.growcalth.ui.theme.OnSurface
 import com.example.growcalth.ui.theme.SurfaceVariant
 import com.example.growcalth.ui.theme.OnSurfaceVariant
 import com.example.growcalth.ui.theme.Success
+import com.google.firebase.auth.FirebaseAuth
 
 @Composable
 fun SettingsTab() {
@@ -402,13 +403,14 @@ fun ContactAndSignOutCard() {
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable {
+                        // Firebase sign out
+                        FirebaseAuth.getInstance().signOut()
+
                         // Navigate back to MainActivity
                         val intent = Intent(context, MainActivity::class.java).apply {
                             flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
                         }
                         context.startActivity(intent)
-                        // If this is called from an Activity, you might want to finish it
-                        // (context as? Activity)?.finish()
                     }
                     .padding(16.dp)
             )
