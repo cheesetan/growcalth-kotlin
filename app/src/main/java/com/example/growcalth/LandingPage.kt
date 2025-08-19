@@ -53,18 +53,26 @@ import com.example.growcalth.ui.theme.Info
 import kotlin.math.cos
 import kotlin.math.sin
 import com.example.growcalth.LeaderboardActivity
-import com.example.growcalth.NapfaScreen
 import com.example.growcalth.ChallengesScreen
 import com.example.growcalth.AnnouncementsTab
 import com.example.growcalth.SettingsTab
+import com.google.firebase.FirebaseApp
+import com.google.firebase.firestore.FirebaseFirestore
 
 class LandingPageActivity : ComponentActivity() {
+    private lateinit var db: FirebaseFirestore
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Initialize Firebase
+        FirebaseApp.initializeApp(this)
+        db = FirebaseFirestore.getInstance()
+
         setContent {
             GrowCalthTheme {
-                LandingPage()
+                LandingPage(db = db)
             }
         }
     }
@@ -79,7 +87,7 @@ enum class Destination(val label: String, val icon: androidx.compose.ui.graphics
 }
 
 @Composable
-fun LandingPage(modifier: Modifier = Modifier) {
+fun LandingPage(db: FirebaseFirestore, modifier: Modifier = Modifier) {
     val startDestination = Destination.HOME
     var selectedDestination by rememberSaveable { mutableIntStateOf(startDestination.ordinal) }
     var showGoalDialog by remember { mutableStateOf(false) }
@@ -177,7 +185,7 @@ fun LandingPage(modifier: Modifier = Modifier) {
                 0 -> HomeTab(onGoalClick = { showGoalDialog = true })
                 1 -> AnnouncementsTab()
                 2 -> ChallengesScreen()
-                3 -> NapfaTab()
+                3 -> NapfaTab(db = db) // Pass db parameter here
                 4 -> SettingsTab()
             }
         }
@@ -486,8 +494,8 @@ fun HomeTab(onGoalClick: () -> Unit = {}) {
 }
 
 @Composable
-fun NapfaTab() {
-    NapfaScreen()
+fun NapfaTab(db: FirebaseFirestore) {
+    NapfaScreen(db)
 }
 
 @Composable
