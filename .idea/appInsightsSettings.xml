@@ -9,10 +9,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="com.android.growcalth" />
-                  <option name="mobileSdkAppId" value="1:758127957931:android:73fd45308aec21a31de4ee" />
-                  <option name="projectId" value="new-growcalth" />
-                  <option name="projectNumber" value="758127957931" />
+                  <option name="appId" value="PLACEHOLDER" />
+                  <option name="mobileSdkAppId" value="" />
+                  <option name="projectId" value="" />
+                  <option name="projectNumber" value="" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

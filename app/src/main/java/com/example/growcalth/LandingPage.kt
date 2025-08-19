@@ -487,7 +487,7 @@ fun HomeTab(onGoalClick: () -> Unit = {}) {
 
 @Composable
 fun NapfaTab() {
-    NapfaScreen(semester = "s2-2024")
+    NapfaScreen()
 }
 
 @Composable

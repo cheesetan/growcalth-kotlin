@@ -6,23 +6,26 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.google.firebase.firestore.FirebaseFirestore
-import kotlinx.coroutines.tasks.await
+import com.example.growcalth.ui.theme.Surface
+import com.example.growcalth.ui.theme.OnSurface
+import com.example.growcalth.ui.theme.SurfaceVariant
+import com.example.growcalth.ui.theme.OnSurfaceVariant
+import com.example.growcalth.ui.theme.OutlineVariant
 
 class NapfaActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            NapfaScreen(semester = "s2-2024")
+            NapfaScreen()
         }
     }
 }
@@ -35,61 +38,47 @@ data class Student(
 )
 
 @Composable
-fun NapfaScreen(semester: String) {
-    val db = FirebaseFirestore.getInstance()
-    var resultsMap by remember { mutableStateOf<Map<String, List<Student>>>(emptyMap()) }
-    var isLoading by remember { mutableStateOf(true) }
+fun NapfaScreen() {
+    val sitUpResults = listOf(
+        Student("#1", "Scoobert", "S201", "100"),
+        Student("#2", "Washington", "S202", "90"),
+        Student("#3", "Gmail", "S204", "80"),
+        Student("#4", "Bnuuy", "S210", "78"),
+        Student("#5", "Mulch", "S209", "68")
+    )
 
-    LaunchedEffect(semester) {
-        isLoading = true
-        try {
-            val snapshot = db.collection(semester).get().await()
-            val tempMap = mutableMapOf<String, List<Student>>()
-
-            for (doc in snapshot.documents) {
-                val fieldMap = doc.data ?: continue
-                for ((fieldName, value) in fieldMap) {
-                    val list = (value as? List<*>)?.mapNotNull { raw ->
-                        (raw as? String)?.split("___")?.let { parts ->
-                            if (parts.size >= 4) {
-                                Student(
-                                    rank = parts[0],
-                                    name = parts[1],
-                                    className = parts[2],
-                                    score = parts[3]
-                                )
-                            } else null
-                        }
-                    } ?: emptyList()
-                    tempMap[fieldName] = list
-                }
-            }
-            resultsMap = tempMap
-        } catch (e: Exception) {
-            e.printStackTrace()
-        } finally {
-            isLoading = false
-        }
-    }
+    val shuttleRunResults = listOf(
+        Student("#1", "Scoobert", "S201", "1.0s"),
+        Student("#2", "Washington", "S202", "2.9s"),
+        Student("#3", "Gmail", "S204", "3.1s"),
+        Student("#4", "Bnuuy", "S210", "3.3s"),
+        Student("#5", "Mulch", "S209", "4.0s")
+    )
 
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.surface
     ) {
-        if (isLoading) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(32.dp)
+        ) {
+            item {
+                // Sit ups Section
+                TestSection(
+                    title = "Sit ups",
+                    results = sitUpResults
+                )
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(32.dp)
-            ) {
-                items(resultsMap.toList()) { (testName, students) ->
-                    TestSection(title = testName, results = students)
-                }
+
+            item {
+                // Shuttle Run Section
+                TestSection(
+                    title = "Shuttle Run",
+                    results = shuttleRunResults
+                )
             }
         }
     }
@@ -101,21 +90,15 @@ fun TestSection(
     results: List<Student>
 ) {
     Column {
-        // Use replaceFirst instead of replaceFirstChar to avoid API 26+ requirement
-        val formattedTitle = if (title.isNotEmpty()) {
-            title.first().uppercaseChar() + title.drop(1)
-        } else {
-            title
-        }
-
         Text(
-            text = formattedTitle,
+            text = title,
             fontSize = 18.sp,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
+        // Table
         Card(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
@@ -200,6 +183,7 @@ fun TestSection(
                         )
                     }
 
+                    // Divider (only if not the last item)
                     if (index < results.size - 1) {
                         HorizontalDivider(
                             color = MaterialTheme.colorScheme.outlineVariant,
