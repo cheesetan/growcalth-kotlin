@@ -1,13 +1,16 @@
 package com.example.growcalth
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
@@ -22,21 +25,24 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.growcalth.ui.theme.GrowCalthTheme
 import com.example.growcalth.ui.theme.ThemeMode
-import com.example.growcalth.ui.theme.Accent
-import com.example.growcalth.ui.theme.Gold
-import com.example.growcalth.ui.theme.Success
-import com.example.growcalth.ui.theme.Info
-import com.example.growcalth.ui.theme.Surface
-import com.example.growcalth.ui.theme.OnSurface
-import com.example.growcalth.ui.theme.SurfaceVariant
-import com.example.growcalth.ui.theme.OnSurfaceVariant
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
+import kotlinx.coroutines.tasks.await
+import java.text.NumberFormat
+import java.util.*
+
+// Data class for House Points
+data class HousePoints(
+    val id: String = "",
+    val color: String = "",
+    val points: Long = 0L
+)
 
 class LeaderboardActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            // Just use a fixed theme mode without ViewModel
             GrowCalthTheme(themeMode = ThemeMode.AUTO) {
                 LeaderboardScreen(onBackClick = { finish() })
             }
@@ -46,6 +52,42 @@ class LeaderboardActivity : ComponentActivity() {
 
 @Composable
 fun LeaderboardScreen(onBackClick: () -> Unit) {
+    var housePoints by remember { mutableStateOf<List<HousePoints>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    // Load house points from Firebase
+    LaunchedEffect(Unit) {
+        try {
+            val db = FirebaseFirestore.getInstance()
+            val result = db.collection("HousePoints")
+                .orderBy("points", Query.Direction.DESCENDING)
+                .get()
+                .await()
+
+            val fetchedHousePoints = result.documents.mapNotNull { document ->
+                try {
+                    HousePoints(
+                        id = document.id,
+                        color = document.getString("color") ?: "",
+                        points = document.getLong("points") ?: 0L
+                    )
+                } catch (e: Exception) {
+                    Log.e("LeaderboardScreen", "Error parsing house points: ${document.id}", e)
+                    null
+                }
+            }
+
+            housePoints = fetchedHousePoints
+            isLoading = false
+
+        } catch (e: Exception) {
+            Log.e("LeaderboardScreen", "Error fetching house points", e)
+            errorMessage = "Failed to load leaderboard: ${e.message}"
+            isLoading = false
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -63,7 +105,7 @@ fun LeaderboardScreen(onBackClick: () -> Unit) {
                 Icon(
                     Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
-                    tint = Accent
+                    tint = MaterialTheme.colorScheme.primary
                 )
             }
             Text(
@@ -75,28 +117,113 @@ fun LeaderboardScreen(onBackClick: () -> Unit) {
             )
         }
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(top = 80.dp, start = 16.dp, end = 16.dp, bottom = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // Trophy icon
-            Box(
-                modifier = Modifier
-                    .padding(vertical = 32.dp)
-                    .size(80.dp)
-                    .background(Gold, shape = RoundedCornerShape(20.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "🏆",
-                    fontSize = 40.sp,
-                    textAlign = TextAlign.Center
-                )
+        // Content
+        when {
+            isLoading -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(top = 80.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        CircularProgressIndicator(
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "Loading leaderboard...",
+                            fontSize = 16.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
 
-            // Podium
+            errorMessage != null -> {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(top = 80.dp, start = 16.dp, end = 16.dp, bottom = 16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            text = errorMessage ?: "Unknown error occurred",
+                            modifier = Modifier.padding(16.dp),
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            fontSize = 14.sp,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            }
+
+            housePoints.isEmpty() -> {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(top = 80.dp, start = 16.dp, end = 16.dp, bottom = 16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "🏆",
+                        fontSize = 64.sp,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "No house points data available",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+
+            else -> {
+                LeaderboardContent(housePoints = housePoints)
+            }
+        }
+    }
+}
+
+@Composable
+fun LeaderboardContent(housePoints: List<HousePoints>) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(top = 80.dp, start = 16.dp, end = 16.dp, bottom = 16.dp)
+            .verticalScroll(rememberScrollState()),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Trophy icon
+        Box(
+            modifier = Modifier
+                .padding(vertical = 32.dp)
+                .size(80.dp)
+                .background(getHouseColor(housePoints.firstOrNull()?.color ?: ""), shape = RoundedCornerShape(20.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "🏆",
+                fontSize = 40.sp,
+                textAlign = TextAlign.Center
+            )
+        }
+
+        // Podium (top 3)
+        if (housePoints.size >= 3) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -104,22 +231,96 @@ fun LeaderboardScreen(onBackClick: () -> Unit) {
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.Bottom
             ) {
-                PodiumColumn(3, 120.dp, Info, "6,739", "🐎")
+                // 3rd place
+                PodiumColumn(
+                    position = 3,
+                    height = 120.dp,
+                    color = getHouseColor(housePoints[2].color),
+                    points = formatExactPoints(housePoints[2].points),
+                    emoji = getHouseEmoji(housePoints[2].color)
+                )
                 Spacer(modifier = Modifier.width(12.dp))
-                PodiumColumn(1, 180.dp, Gold, "7,293", "🕊️")
-                Spacer(modifier = Modifier.width(12.dp))
-                PodiumColumn(2, 150.dp, Success, "6,780", "🐉")
-            }
 
-            // Extra ranks
+                // 1st place
+                PodiumColumn(
+                    position = 1,
+                    height = 180.dp,
+                    color = getHouseColor(housePoints[0].color),
+                    points = formatExactPoints(housePoints[0].points),
+                    emoji = getHouseEmoji(housePoints[0].color)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+
+                // 2nd place
+                PodiumColumn(
+                    position = 2,
+                    height = 150.dp,
+                    color = getHouseColor(housePoints[1].color),
+                    points = formatExactPoints(housePoints[1].points),
+                    emoji = getHouseEmoji(housePoints[1].color)
+                )
+            }
+        }
+
+        // Remaining ranks (4th place onwards)
+        if (housePoints.size > 3) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                LeaderboardRankItem("4TH", "6,566 POINTS", "🦄", Color(0xFF6B7280))
-                LeaderboardRankItem("5TH", "5,333 POINTS", "🔥", Accent)
+                housePoints.drop(3).forEachIndexed { index, house ->
+                    val position = index + 4
+                    LeaderboardRankItem(
+                        position = "${getOrdinal(position)}",
+                        points = "${formatExactPoints(house.points)} POINTS",
+                        emoji = getHouseEmoji(house.color),
+                        backgroundColor = getHouseColor(house.color)
+                    )
+                }
+            }
+        } else if (housePoints.size == 2) {
+            // Handle case with only 2 houses
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 32.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.Bottom
+            ) {
+                // 1st place
+                PodiumColumn(
+                    position = 1,
+                    height = 180.dp,
+                    color = getHouseColor(housePoints[0].color),
+                    points = formatExactPoints(housePoints[0].points),
+                    emoji = getHouseEmoji(housePoints[0].color)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+
+                // 2nd place
+                PodiumColumn(
+                    position = 2,
+                    height = 150.dp,
+                    color = getHouseColor(housePoints[1].color),
+                    points = formatExactPoints(housePoints[1].points),
+                    emoji = getHouseEmoji(housePoints[1].color)
+                )
+            }
+        } else if (housePoints.size == 1) {
+            // Handle case with only 1 house
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(vertical = 32.dp)
+            ) {
+                PodiumColumn(
+                    position = 1,
+                    height = 180.dp,
+                    color = getHouseColor(housePoints[0].color),
+                    points = formatExactPoints(housePoints[0].points),
+                    emoji = getHouseEmoji(housePoints[0].color)
+                )
             }
         }
     }
@@ -171,9 +372,10 @@ fun PodiumColumn(
                 Text(
                     text = points,
                     color = MaterialTheme.colorScheme.onPrimary,
-                    fontSize = 18.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
+                    lineHeight = 16.sp
                 )
             }
         }
@@ -207,7 +409,7 @@ fun LeaderboardRankItem(
             Text(
                 text = position,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontSize = 18.sp,
+                fontSize = 16.sp,
                 fontWeight = FontWeight.Bold
             )
         }
@@ -243,10 +445,48 @@ fun LeaderboardRankItem(
                 Text(
                     text = points,
                     color = MaterialTheme.colorScheme.onPrimary,
-                    fontSize = 18.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
         }
+    }
+}
+
+// Helper functions
+private fun getHouseColor(color: String): Color {
+    return when (color.lowercase()) {
+        "red" -> Color(0xFFE53E3E)
+        "blue" -> Color(0xFF3182CE)
+        "green" -> Color(0xFF38A169)
+        "yellow" -> Color(0xFFD69E2E)
+        "black" -> Color(0xFF2D3748)
+        else -> Color(0xFF718096) // Default gray
+    }
+}
+
+private fun getHouseEmoji(color: String): String {
+    return when (color.lowercase()) {
+        "red" -> "🔥"
+        "blue" -> "🌊"
+        "green" -> "🌿"
+        "yellow" -> "⚡"
+        "black" -> "🖤"
+        else -> "🏠"
+    }
+}
+
+// New function to format exact points with comma separators
+private fun formatExactPoints(points: Long): String {
+    return NumberFormat.getNumberInstance(Locale.getDefault()).format(points)
+}
+
+private fun getOrdinal(number: Int): String {
+    return when {
+        number % 100 in 11..13 -> "${number}TH"
+        number % 10 == 1 -> "${number}ST"
+        number % 10 == 2 -> "${number}ND"
+        number % 10 == 3 -> "${number}RD"
+        else -> "${number}TH"
     }
 }

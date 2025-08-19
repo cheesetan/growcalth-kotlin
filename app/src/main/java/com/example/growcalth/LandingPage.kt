@@ -20,9 +20,6 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Favorite
-
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -58,6 +55,10 @@ import com.example.growcalth.AnnouncementsTab
 import com.example.growcalth.SettingsTab
 import com.google.firebase.FirebaseApp
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
+import kotlinx.coroutines.tasks.await
+import java.text.NumberFormat
+import java.util.*
 
 class LandingPageActivity : ComponentActivity() {
     private lateinit var db: FirebaseFirestore
@@ -389,6 +390,39 @@ fun GoalItem(
 
 @Composable
 fun HomeTab(onGoalClick: () -> Unit = {}) {
+    var topHousePoints by remember { mutableStateOf<List<HousePoints>>(emptyList()) }
+    var isLoadingLeaderboard by remember { mutableStateOf(true) }
+
+    // Load top 3 house points from Firebase
+    LaunchedEffect(Unit) {
+        try {
+            val db = FirebaseFirestore.getInstance()
+            val result = db.collection("HousePoints")
+                .orderBy("points", Query.Direction.DESCENDING)
+                .limit(3)
+                .get()
+                .await()
+
+            val fetchedHousePoints = result.documents.mapNotNull { document ->
+                try {
+                    HousePoints(
+                        id = document.id,
+                        color = document.getString("color") ?: "",
+                        points = document.getLong("points") ?: 0L
+                    )
+                } catch (e: Exception) {
+                    null
+                }
+            }
+
+            topHousePoints = fetchedHousePoints
+            isLoadingLeaderboard = false
+
+        } catch (e: Exception) {
+            isLoadingLeaderboard = false
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -430,13 +464,37 @@ fun HomeTab(onGoalClick: () -> Unit = {}) {
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        Column(
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.padding(horizontal = 4.dp)
-        ) {
-            LeaderboardItem("1ST", "7,293 POINTS", Gold)
-            LeaderboardItem("2ND", "6,780 POINTS", Success)
-            LeaderboardItem("3RD", "6,739 POINTS", Info)
+        if (isLoadingLeaderboard) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(150.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        } else {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.padding(horizontal = 4.dp)
+            ) {
+                topHousePoints.forEachIndexed { index, house ->
+                    val position = when (index) {
+                        0 -> "1ST"
+                        1 -> "2ND"
+                        2 -> "3RD"
+                        else -> "${index + 1}TH"
+                    }
+                    LeaderboardItem(
+                        position = position,
+                        points = "${formatExactPoints(house.points)} POINTS",
+                        color = getHouseColor(house.color)
+                    )
+                }
+            }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -652,4 +710,21 @@ fun LeaderboardItem(
             )
         }
     }
+}
+
+// Helper functions
+private fun getHouseColor(color: String): Color {
+    return when (color.lowercase()) {
+        "red" -> Color(0xFFE53E3E)
+        "blue" -> Color(0xFF3182CE)
+        "green" -> Color(0xFF38A169)
+        "yellow" -> Color(0xFFD69E2E)
+        "black" -> Color(0xFF2D3748)
+        else -> Color(0xFF718096) // Default gray
+    }
+}
+
+// Function to format exact points with comma separators
+private fun formatExactPoints(points: Long): String {
+    return NumberFormat.getNumberInstance(Locale.getDefault()).format(points)
 }
