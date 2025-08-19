@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,7 +17,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
-import kotlinx.coroutines.launch
 
 class NapfaActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -87,10 +87,8 @@ fun NapfaScreen(semester: String) {
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(32.dp)
             ) {
-                resultsMap.forEach { (testName, students) ->
-                    item {
-                        TestSection(title = testName, results = students)
-                    }
+                items(resultsMap.toList()) { (testName, students) ->
+                    TestSection(title = testName, results = students)
                 }
             }
         }
@@ -103,8 +101,15 @@ fun TestSection(
     results: List<Student>
 ) {
     Column {
+        // Use replaceFirst instead of replaceFirstChar to avoid API 26+ requirement
+        val formattedTitle = if (title.isNotEmpty()) {
+            title.first().uppercaseChar() + title.drop(1)
+        } else {
+            title
+        }
+
         Text(
-            text = title.replaceFirstChar { it.uppercase() },
+            text = formattedTitle,
             fontSize = 18.sp,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurface,
@@ -117,6 +122,7 @@ fun TestSection(
             shape = MaterialTheme.shapes.medium
         ) {
             Column {
+                // Header Row
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -124,12 +130,39 @@ fun TestSection(
                         .padding(vertical = 12.dp, horizontal = 16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("#", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(0.8f))
-                    Text("Name", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(2f))
-                    Text("Class", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1.2f), textAlign = TextAlign.Center)
-                    Text("Score", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f), textAlign = TextAlign.End)
+                    Text(
+                        text = "#",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(0.8f)
+                    )
+                    Text(
+                        text = "Name",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(2f)
+                    )
+                    Text(
+                        text = "Class",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1.2f),
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        text = "Score",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f),
+                        textAlign = TextAlign.End
+                    )
                 }
 
+                // Data Rows
                 results.forEachIndexed { index, student ->
                     Row(
                         modifier = Modifier
@@ -139,14 +172,39 @@ fun TestSection(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(student.rank, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(0.8f))
-                        Text(student.name, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(2f))
-                        Text(student.className, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1.2f), textAlign = TextAlign.Center)
-                        Text(student.score, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f), textAlign = TextAlign.End)
+                        Text(
+                            text = student.rank,
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.weight(0.8f)
+                        )
+                        Text(
+                            text = student.name,
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.weight(2f)
+                        )
+                        Text(
+                            text = student.className,
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.weight(1.2f),
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            text = student.score,
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.weight(1f),
+                            textAlign = TextAlign.End
+                        )
                     }
 
                     if (index < results.size - 1) {
-                        Divider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 0.5.dp)
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant,
+                            thickness = 0.5.dp
+                        )
                     }
                 }
             }
