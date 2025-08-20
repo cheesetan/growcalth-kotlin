@@ -60,7 +60,7 @@ fun LeaderboardScreen(onBackClick: () -> Unit) {
     LaunchedEffect(Unit) {
         try {
             val db = FirebaseFirestore.getInstance()
-            val result = db.collection("HousePoints")
+            val result = db.collection("schools").document("sst").collection("leaderboard")
                 .orderBy("points", Query.Direction.DESCENDING)
                 .get()
                 .await()
@@ -69,7 +69,7 @@ fun LeaderboardScreen(onBackClick: () -> Unit) {
                 try {
                     HousePoints(
                         id = document.id,
-                        color = document.getString("color") ?: "",
+                        color = document.getString("name") ?: "",
                         points = document.getLong("points") ?: 0L
                     )
                 } catch (e: Exception) {

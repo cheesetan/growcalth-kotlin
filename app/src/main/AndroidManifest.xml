@@ -15,12 +15,26 @@
         <activity android:name=".SignUpActivity" />
         <activity android:name=".LandingPageActivity" />
         <activity android:name=".LeaderboardActivity" />
+        <activity
+            android:name=".AcknowledgementsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.GrowCalth" />
+        <activity
+            android:name=".CalculatorActivity"
+            android:exported="false"
+            android:theme="@style/Theme.GrowCalth" />
+
+        <activity
+            android:name=".AccountActivity"
+            android:exported="false"
+            android:theme="@style/Theme.GrowCalth" />
 
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.GrowCalth">
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

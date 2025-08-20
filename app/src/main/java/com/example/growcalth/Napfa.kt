@@ -80,7 +80,9 @@ fun NapfaScreen(db: FirebaseFirestore) {
         try {
             Log.d("NapfaActivity", "Loading available semesters...")
 
-            val querySnapshot = db.collection("napfa")
+            val querySnapshot = db.collection("schools")
+                .document("sst")
+                .collection("napfa")
                 .get()
                 .await()
 
@@ -110,7 +112,9 @@ fun NapfaScreen(db: FirebaseFirestore) {
             try {
                 Log.d("NapfaActivity", "Loading data for semester: $currentSemester")
 
-                val documentSnapshot = db.collection("napfa")
+                val documentSnapshot = db.collection("schools")
+                    .document("sst")
+                    .collection("napfa")
                     .document(currentSemester)
                     .get()
                     .await()

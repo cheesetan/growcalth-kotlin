@@ -182,7 +182,7 @@ fun AnnouncementsContent(
     LaunchedEffect(Unit) {
         try {
             val db = FirebaseFirestore.getInstance()
-            val result = db.collection("Announcements")
+            val result = db.collection("schools").document("sst").collection("announcements")
                 .orderBy("dateAdded", Query.Direction.DESCENDING)
                 .get()
                 .await()
@@ -191,9 +191,8 @@ fun AnnouncementsContent(
                 try {
                     Announcement(
                         id = document.id,
-                        header = document.getString("header") ?: "",
-                        text = document.getString("text") ?: "",
-                        name = document.getString("name") ?: "",
+                        header = document.getString("title") ?: "",
+                        text = document.getString("description") ?: "",
                         dateAdded = document.getTimestamp("dateAdded")?.toDate()
                     )
                 } catch (e: Exception) {

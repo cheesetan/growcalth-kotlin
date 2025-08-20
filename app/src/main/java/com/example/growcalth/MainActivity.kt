@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import com.example.growcalth.ui.theme.Accent
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -228,7 +229,7 @@ fun LoginScreen(
                 imageVector = Icons.Default.Home,
                 contentDescription = "House Icon",
                 modifier = Modifier.size(60.dp),
-                tint = Color(0xFFE91E63)
+                tint = Accent
             )
         }
 
@@ -313,7 +314,7 @@ fun LoginScreen(
                 .height(56.dp),
             shape = RoundedCornerShape(28.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFE91E63)
+                containerColor = Accent
             ),
             enabled = !isLoading
         ) {
@@ -348,7 +349,7 @@ fun LoginScreen(
             TextButton(
                 onClick = onSignUpClick,
                 colors = ButtonDefaults.textButtonColors(
-                    contentColor = Color(0xFFE91E63)
+                    contentColor = Accent
                 ),
                 enabled = !isLoading
             ) {
