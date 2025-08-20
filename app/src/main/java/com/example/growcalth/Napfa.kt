@@ -11,8 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -67,6 +66,7 @@ data class TestResults(
     val students: List<Student>
 )
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NapfaScreen(db: FirebaseFirestore) {
     var availableYears by remember { mutableStateOf<List<String>>(emptyList()) }
@@ -75,7 +75,8 @@ fun NapfaScreen(db: FirebaseFirestore) {
     var isLoading by remember { mutableStateOf(true) }
     var isLoadingData by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
-    var selectedLevel by remember { mutableStateOf("Secondary 2") }
+    var selectedLevel by remember { mutableStateOf("Sec 2") }
+    var showYearDropdown by remember { mutableStateOf(false) }
 
     val currentYear = if (availableYears.isNotEmpty()) availableYears[currentYearIndex] else ""
 
@@ -134,8 +135,8 @@ fun NapfaScreen(db: FirebaseFirestore) {
 
                 // Determine the document ID based on selected level and year
                 val levelPrefix = when (selectedLevel) {
-                    "Secondary 2" -> "s2"
-                    "Secondary 4" -> "s4"
+                    "Sec 2" -> "s2"
+                    "Sec 4" -> "s4"
                     else -> "s2"
                 }
                 val documentId = "$levelPrefix-$currentYear"
@@ -194,7 +195,7 @@ fun NapfaScreen(db: FirebaseFirestore) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF0F0F0))
+            .background(Color(0xFFF8F9FA))
     ) {
         if (isLoading) {
             Box(
@@ -204,35 +205,69 @@ fun NapfaScreen(db: FirebaseFirestore) {
                 CircularProgressIndicator(color = Color.Red)
             }
         } else {
-            // Header with Navigation
-            NapfaHeader(
-                currentYear = currentYear,
-                currentIndex = currentYearIndex,
-                totalYears = availableYears.size,
-                onPrevious = {
-                    if (currentYearIndex > 0) {
-                        currentYearIndex--
-                    }
-                },
-                onNext = {
-                    if (currentYearIndex < availableYears.size - 1) {
-                        currentYearIndex++
+
+            // Year Dropdown and Level Selection
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Year Dropdown
+                ExposedDropdownMenuBox(
+                    expanded = showYearDropdown,
+                    onExpandedChange = { showYearDropdown = it },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    OutlinedTextField(
+                        value = "Year $currentYear",
+                        onValueChange = {},
+                        readOnly = true,
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = showYearDropdown)
+                        },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            unfocusedBorderColor = Color(0xFFDFDFE5),
+                            focusedBorderColor = Color(0xFFDFDFE5),
+                            unfocusedContainerColor = Color(0xFFDFDFE5),
+                            focusedContainerColor = Color(0xFFDFDFE5)
+                        ),
+                        shape = RoundedCornerShape(25.dp),
+                        modifier = Modifier
+                            .menuAnchor()
+                            .fillMaxWidth()
+                    )
+
+                    ExposedDropdownMenu(
+                        expanded = showYearDropdown,
+                        onDismissRequest = { showYearDropdown = false }
+                    ) {
+                        availableYears.forEachIndexed { index, year ->
+                            DropdownMenuItem(
+                                text = { Text("Year $year") },
+                                onClick = {
+                                    currentYearIndex = index
+                                    showYearDropdown = false
+                                }
+                            )
+                        }
                     }
                 }
-            )
 
-            // Level Selection Tabs
-            LevelSelectionTabs(
-                selectedLevel = selectedLevel,
-                onLevelSelected = { selectedLevel = it },
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
-            )
+                // Level Selection Tabs
+                LevelSelectionTabs(
+                    selectedLevel = selectedLevel,
+                    onLevelSelected = { selectedLevel = it },
+                    modifier = Modifier.weight(1f)
+                )
+            }
 
-            // Test Results
+            // Content
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(0.dp)
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 if (error != null) {
                     item {
@@ -252,69 +287,16 @@ fun NapfaScreen(db: FirebaseFirestore) {
                         EmptyStateCard(year = currentYear, level = selectedLevel)
                     }
                 }
+
+                // My Records Section
+                item {
+                    MyRecordsSection()
+                }
             }
         }
     }
 }
 
-@Composable
-fun NapfaHeader(
-    currentYear: String,
-    currentIndex: Int,
-    totalYears: Int,
-    onPrevious: () -> Unit,
-    onNext: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 16.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // Previous button
-        Box(
-            modifier = Modifier
-                .size(44.dp)
-                .clip(CircleShape)
-                .background(Color(0xFFFF6B6B))
-                .clickable(enabled = currentIndex > 0) { onPrevious() },
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Default.ArrowBack,
-                contentDescription = "Previous",
-                tint = Color.White,
-                modifier = Modifier.size(24.dp)
-            )
-        }
-
-        // Title
-        Text(
-            text = currentYear,
-            fontSize = 22.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.Black
-        )
-
-        // Next button
-        Box(
-            modifier = Modifier
-                .size(44.dp)
-                .clip(CircleShape)
-                .background(Color(0xFFFF6B6B))
-                .clickable(enabled = currentIndex < totalYears - 1) { onNext() },
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Default.ArrowForward,
-                contentDescription = "Next",
-                tint = Color.White,
-                modifier = Modifier.size(24.dp)
-            )
-        }
-    }
-}
 
 @Composable
 fun LevelSelectionTabs(
@@ -323,29 +305,28 @@ fun LevelSelectionTabs(
     modifier: Modifier = Modifier
 ) {
     Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        val levels = listOf("Secondary 2", "Secondary 4")
+        val levels = listOf("Sec 2", "Sec 4")
 
         levels.forEach { level ->
             Box(
                 modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(25.dp))
+                    .clip(RoundedCornerShape(20.dp))
                     .background(
-                        if (selectedLevel == level) Color.White
-                        else Color(0xFFE0E0E0)
+                        if (selectedLevel == level) Color(0xFF4F4F52)
+                        else Color(0xFFDFDFE5)
                     )
                     .clickable { onLevelSelected(level) }
-                    .padding(vertical = 14.dp),
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = level,
-                    fontSize = 16.sp,
-                    fontWeight = if (selectedLevel == level) FontWeight.SemiBold else FontWeight.Medium,
-                    color = if (selectedLevel == level) Color.Black else Color(0xFF808080)
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = if (selectedLevel == level) Color.White else Color(0xFF666666)
                 )
             }
         }
@@ -358,27 +339,65 @@ fun ModernTestSection(
     results: List<Student>,
     isLoading: Boolean = false
 ) {
-    Column(
+    Card(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(0.dp)
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        // Section Title
-        Text(
-            text = title,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Medium,
-            color = Color(0xFF808080),
-            modifier = Modifier.padding(vertical = 16.dp)
-        )
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            // Section Title
+            Text(
+                text = title,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.Black,
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
 
-        // Results Cards
-        if (isLoading) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                shape = RoundedCornerShape(12.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            // Headers
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
+                Text(
+                    text = "#",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF666666),
+                    modifier = Modifier.width(32.dp)
+                )
+                Text(
+                    text = "Name",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF666666),
+                    modifier = Modifier.weight(1f)
+                )
+                Text(
+                    text = "Class",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF666666),
+                    modifier = Modifier.width(60.dp),
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    text = "Score",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF666666),
+                    modifier = Modifier.width(80.dp),
+                    textAlign = TextAlign.End
+                )
+            }
+
+            // Results
+            if (isLoading) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -390,96 +409,96 @@ fun ModernTestSection(
                         strokeWidth = 2.dp
                     )
                 }
-            }
-        } else {
-            results.take(10).forEachIndexed { index, student ->
-                StudentResultCard(
-                    student = student,
-                    position = index + 1,
-                    isFirst = index == 0,
-                    isLast = index == results.take(10).size - 1
-                )
+            } else {
+                results.take(5).forEachIndexed { index, student ->
+                    StudentResultRow(
+                        student = student,
+                        position = index + 1
+                    )
+                    if (index < results.take(5).size - 1) {
+                        HorizontalDivider(
+                            color = Color(0xFFE0E0E0),
+                            thickness = 0.5.dp,
+                            modifier = Modifier.padding(vertical = 4.dp)
+                        )
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-fun StudentResultCard(
+fun StudentResultRow(
     student: Student,
-    position: Int,
-    isFirst: Boolean,
-    isLast: Boolean
+    position: Int
 ) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Position
+        Text(
+            text = "#$position",
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
+            color = Color.Black,
+            modifier = Modifier.width(32.dp)
+        )
+
+        // Name
+        Text(
+            text = student.name,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
+            color = Color.Black,
+            modifier = Modifier.weight(1f)
+        )
+
+        // Class
+        Text(
+            text = student.className,
+            fontSize = 14.sp,
+            color = Color(0xFF666666),
+            modifier = Modifier.width(60.dp),
+            textAlign = TextAlign.Center
+        )
+
+        // Score
+        Text(
+            text = student.score,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
+            color = Color.Black,
+            modifier = Modifier.width(80.dp),
+            textAlign = TextAlign.End
+        )
+    }
+}
+
+@Composable
+fun MyRecordsSection() {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = when {
-            isFirst && isLast -> RoundedCornerShape(12.dp)
-            isFirst -> RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
-            isLast -> RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)
-            else -> RoundedCornerShape(0.dp)
-        },
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Position and Name
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    // Position Number
-                    Text(
-                        text = position.toString(),
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Black,
-                        modifier = Modifier.width(24.dp),
-                        textAlign = TextAlign.Start
-                    )
-
-                    // Name and Class
-                    Column {
-                        Text(
-                            text = student.name.uppercase(),
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.Black,
-                            lineHeight = 20.sp
-                        )
-                        Text(
-                            text = student.className,
-                            fontSize = 14.sp,
-                            color = Color.Black,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-
-                // Score
-                Text(
-                    text = student.score,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color.Black
-                )
-            }
-
-            // Divider (except for last item)
-            if (!isLast) {
-                HorizontalDivider(
-                    color = Color(0xFFF0F0F0),
-                    thickness = 1.dp,
-                    modifier = Modifier.padding(horizontal = 20.dp)
-                )
-            }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(40.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "My Records",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color(0xFF666666),
+                textAlign = TextAlign.Center
+            )
         }
     }
 }
@@ -527,12 +546,14 @@ fun EmptyStateCard(year: String, level: String) {
 fun formatTestName(testName: String): String {
     return when (testName.lowercase()) {
         "2.4km" -> "2.4KM RUN"
-        "inclinedpullups" -> "INCLINED PULL-UPS"
-        "pullups" -> "PULL-UPS"
-        "situps" -> "SIT-UPS"
-        "standingbroad" -> "STANDING BROAD JUMP"
-        "sitandreach" -> "SIT AND REACH"
-        else -> testName.uppercase().replace("_", " ")
+        "inclinedpullups" -> "Inclined Pull-ups"
+        "pullups" -> "Pull-ups"
+        "situps" -> "Sit ups"
+        "standingbroad" -> "Standing Broad Jump"
+        "sitandreach" -> "Sit and Reach"
+        "shuttlerun" -> "Shuttle Run"
+        else -> testName.split("(?=[A-Z])".toRegex()).joinToString(" ").lowercase()
+            .split(" ").joinToString(" ") { it.replaceFirstChar { char -> char.uppercaseChar() } }
     }
 }
 
