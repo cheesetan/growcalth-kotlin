@@ -5,16 +5,19 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -66,19 +69,20 @@ data class TestResults(
 
 @Composable
 fun NapfaScreen(db: FirebaseFirestore) {
-    var availableSemesters by remember { mutableStateOf<List<String>>(emptyList()) }
-    var currentSemesterIndex by remember { mutableStateOf(0) }
+    var availableYears by remember { mutableStateOf<List<String>>(emptyList()) }
+    var currentYearIndex by remember { mutableStateOf(0) }
     var testResults by remember { mutableStateOf<List<TestResults>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var isLoadingData by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
+    var selectedLevel by remember { mutableStateOf("Secondary 2") }
 
-    val currentSemester = if (availableSemesters.isNotEmpty()) availableSemesters[currentSemesterIndex] else ""
+    val currentYear = if (availableYears.isNotEmpty()) availableYears[currentYearIndex] else ""
 
-    // Load available semesters when the composable is first created
+    // Load available years when the composable is first created
     LaunchedEffect(Unit) {
         try {
-            Log.d("NapfaActivity", "Loading available semesters...")
+            Log.d("NapfaActivity", "Loading NAPFA data...")
 
             val querySnapshot = db.collection("schools")
                 .document("sst")
@@ -86,75 +90,100 @@ fun NapfaScreen(db: FirebaseFirestore) {
                 .get()
                 .await()
 
-            val semesters = querySnapshot.documents.map { it.id }.sorted()
-            availableSemesters = semesters
+            if (!querySnapshot.isEmpty) {
+                val documentIds = querySnapshot.documents.map { it.id }
+                Log.d("NapfaActivity", "Found documents: $documentIds")
 
-            Log.d("NapfaActivity", "Found semesters: $semesters")
+                // Extract unique years from document IDs (s2-2023, s4-2024, etc.)
+                val years = documentIds
+                    .mapNotNull { documentId ->
+                        // Extract year from document IDs like "s2-2023", "s4-2024"
+                        val parts = documentId.split("-")
+                        if (parts.size == 2) parts[1] else null
+                    }
+                    .distinct()
+                    .sorted()
 
-            if (semesters.isNotEmpty()) {
-                // Load data for the first semester - this will be handled by LaunchedEffect(currentSemester)
-                isLoading = false
+                availableYears = years
+                Log.d("NapfaActivity", "Found years: $years")
+
+                if (years.isNotEmpty()) {
+                    currentYearIndex = years.size - 1 // Start with the latest year
+                    isLoading = false
+                } else {
+                    error = "No NAPFA data found"
+                    isLoading = false
+                }
             } else {
-                error = "No semesters found"
+                error = "No NAPFA documents found"
                 isLoading = false
             }
         } catch (e: Exception) {
-            Log.e("NapfaActivity", "Error loading semesters", e)
-            error = "Failed to load semesters: ${e.message}"
+            Log.e("NapfaActivity", "Error loading NAPFA data", e)
+            error = "Failed to load data: ${e.message}"
             isLoading = false
         }
     }
 
-    // Load data when semester changes
-    LaunchedEffect(currentSemester) {
-        if (currentSemester.isNotEmpty() && !isLoading) {
+    // Load data when year or level changes
+    LaunchedEffect(currentYear, selectedLevel) {
+        if (currentYear.isNotEmpty() && !isLoading) {
             isLoadingData = true
             try {
-                Log.d("NapfaActivity", "Loading data for semester: $currentSemester")
+                Log.d("NapfaActivity", "Loading data for year: $currentYear, level: $selectedLevel")
+
+                // Determine the document ID based on selected level and year
+                val levelPrefix = when (selectedLevel) {
+                    "Secondary 2" -> "s2"
+                    "Secondary 4" -> "s4"
+                    else -> "s2"
+                }
+                val documentId = "$levelPrefix-$currentYear"
+
+                Log.d("NapfaActivity", "Looking for document: $documentId")
 
                 val documentSnapshot = db.collection("schools")
                     .document("sst")
                     .collection("napfa")
-                    .document(currentSemester)
+                    .document(documentId)
                     .get()
                     .await()
 
                 if (documentSnapshot.exists()) {
                     val data = documentSnapshot.data ?: emptyMap()
-                    Log.d("NapfaActivity", "Document data: $data")
+                    Log.d("NapfaActivity", "Found data for $documentId: ${data.keys}")
 
                     val results = mutableListOf<TestResults>()
 
-                    // Process all fields in the document (excluding metadata fields)
-                    data.entries.forEach { (fieldName, fieldData) ->
-                        if (fieldName != "timestamp" && fieldName != "createdBy") { // Skip metadata fields
-                            Log.d("NapfaActivity", "Processing field: $fieldName, data: $fieldData")
+                    data.entries.forEach { (testName, testData) ->
+                        if (testName != "timestamp" && testName != "createdBy") {
+                            Log.d("NapfaActivity", "Processing test: $testName, data: $testData")
 
-                            val students = when (fieldData) {
-                                is Map<*, *> -> parseStudentData(fieldData as Map<String, Any>, fieldName)
-                                is List<*> -> parseStudentList(fieldData as List<String>, fieldName)
+                            val students = when (testData) {
+                                is Map<*, *> -> parseStudentData(testData as Map<String, Any>, testName)
+                                is List<*> -> parseStudentList(testData as List<String>, testName)
                                 else -> {
-                                    Log.w("NapfaActivity", "Unexpected data format for $fieldName: $fieldData")
+                                    Log.w("NapfaActivity", "Unexpected data format for $testName: $testData")
                                     emptyList()
                                 }
                             }
 
                             if (students.isNotEmpty()) {
-                                results.add(TestResults(fieldName, students))
+                                results.add(TestResults(testName, students))
                             }
                         }
                     }
 
-                    Log.d("NapfaActivity", "Parsed ${results.size} test categories with total ${results.sumOf { it.students.size }} students")
+                    Log.d("NapfaActivity", "Parsed ${results.size} test categories")
                     testResults = results
                     error = null
                 } else {
-                    Log.w("NapfaActivity", "Document $currentSemester does not exist")
+                    Log.w("NapfaActivity", "No document found for $documentId")
                     testResults = emptyList()
-                    error = "No data found for semester $currentSemester"
+                    error = "No data found for $selectedLevel in $currentYear"
                 }
             } catch (e: Exception) {
-                Log.e("NapfaActivity", "Error loading data for semester $currentSemester", e)
+                Log.e("NapfaActivity", "Error loading data for year $currentYear", e)
                 testResults = emptyList()
                 error = "Failed to load data: ${e.message}"
             }
@@ -162,99 +191,65 @@ fun NapfaScreen(db: FirebaseFirestore) {
         }
     }
 
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.surface
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF0F0F0))
     ) {
         if (isLoading) {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    CircularProgressIndicator()
-                    Text("Loading semesters...")
-                }
+                CircularProgressIndicator(color = Color.Red)
             }
         } else {
-            Column(
-                modifier = Modifier.fillMaxSize()
+            // Header with Navigation
+            NapfaHeader(
+                currentYear = currentYear,
+                currentIndex = currentYearIndex,
+                totalYears = availableYears.size,
+                onPrevious = {
+                    if (currentYearIndex > 0) {
+                        currentYearIndex--
+                    }
+                },
+                onNext = {
+                    if (currentYearIndex < availableYears.size - 1) {
+                        currentYearIndex++
+                    }
+                }
+            )
+
+            // Level Selection Tabs
+            LevelSelectionTabs(
+                selectedLevel = selectedLevel,
+                onLevelSelected = { selectedLevel = it },
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
+            )
+
+            // Test Results
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(horizontal = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(0.dp)
             ) {
-                // Semester Navigation Header
-                SemesterNavigationHeader(
-                    currentSemester = currentSemester,
-                    currentIndex = currentSemesterIndex,
-                    totalSemesters = availableSemesters.size,
-                    isLoading = isLoadingData,
-                    onPrevious = {
-                        if (currentSemesterIndex > 0) {
-                            currentSemesterIndex--
-                        }
-                    },
-                    onNext = {
-                        if (currentSemesterIndex < availableSemesters.size - 1) {
-                            currentSemesterIndex++
-                        }
-                    },
-                    onRefresh = {
-                        isLoadingData = true
-                        // Trigger refresh by creating a new coroutine
+                if (error != null) {
+                    item {
+                        ErrorCard(error = error!!)
                     }
-                )
-
-                // Content
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(32.dp)
-                ) {
-                    if (error != null) {
-                        item {
-                            Card(
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.errorContainer
-                                )
-                            ) {
-                                Text(
-                                    text = error!!,
-                                    color = MaterialTheme.colorScheme.onErrorContainer,
-                                    modifier = Modifier.padding(16.dp)
-                                )
-                            }
-                        }
-                    }
-
-                    // Display all test results
+                } else if (testResults.isNotEmpty()) {
                     items(testResults.size) { index ->
                         val testResult = testResults[index]
-                        TestSection(
+                        ModernTestSection(
                             title = formatTestName(testResult.testName),
                             results = testResult.students,
                             isLoading = isLoadingData
                         )
                     }
-
-                    if (testResults.isEmpty() && error == null && !isLoadingData) {
-                        item {
-                            Card {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(32.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = "No test results found for $currentSemester",
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        fontSize = 16.sp
-                                    )
-                                }
-                            }
-                        }
+                } else if (!isLoadingData) {
+                    item {
+                        EmptyStateCard(year = currentYear, level = selectedLevel)
                     }
                 }
             }
@@ -262,105 +257,282 @@ fun NapfaScreen(db: FirebaseFirestore) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SemesterNavigationHeader(
-    currentSemester: String,
+fun NapfaHeader(
+    currentYear: String,
     currentIndex: Int,
-    totalSemesters: Int,
-    isLoading: Boolean,
+    totalYears: Int,
     onPrevious: () -> Unit,
-    onNext: () -> Unit,
-    onRefresh: () -> Unit
+    onNext: () -> Unit
 ) {
-    Card(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            .padding(horizontal = 24.dp, vertical = 16.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
+        // Previous button
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .size(44.dp)
+                .clip(CircleShape)
+                .background(Color(0xFFFF6B6B))
+                .clickable(enabled = currentIndex > 0) { onPrevious() },
+            contentAlignment = Alignment.Center
         ) {
-            // Previous button
-            IconButton(
-                onClick = onPrevious,
-                enabled = currentIndex > 0 && !isLoading
-            ) {
-                Icon(
-                    imageVector = Icons.Default.ArrowBack,
-                    contentDescription = "Previous semester"
-                )
-            }
+            Icon(
+                imageVector = Icons.Default.ArrowBack,
+                contentDescription = "Previous",
+                tint = Color.White,
+                modifier = Modifier.size(24.dp)
+            )
+        }
 
-            // Current semester info
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally
+        // Title
+        Text(
+            text = currentYear,
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.Black
+        )
+
+        // Next button
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .clip(CircleShape)
+                .background(Color(0xFFFF6B6B))
+                .clickable(enabled = currentIndex < totalYears - 1) { onNext() },
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.ArrowForward,
+                contentDescription = "Next",
+                tint = Color.White,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun LevelSelectionTabs(
+    selectedLevel: String,
+    onLevelSelected: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        val levels = listOf("Secondary 2", "Secondary 4")
+
+        levels.forEach { level ->
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(25.dp))
+                    .background(
+                        if (selectedLevel == level) Color.White
+                        else Color(0xFFE0E0E0)
+                    )
+                    .clickable { onLevelSelected(level) }
+                    .padding(vertical = 14.dp),
+                contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = currentSemester.uppercase(),
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+                    text = level,
+                    fontSize = 16.sp,
+                    fontWeight = if (selectedLevel == level) FontWeight.SemiBold else FontWeight.Medium,
+                    color = if (selectedLevel == level) Color.Black else Color(0xFF808080)
                 )
-                Text(
-                    text = "${currentIndex + 1} of $totalSemesters",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                if (isLoading) {
-                    LinearProgressIndicator(
-                        modifier = Modifier
-                            .width(100.dp)
-                            .padding(top = 4.dp),
-                        // strokeCap = StrokeCap.Round
-                    )
-                }
-            }
-
-            // Next and Refresh buttons
-            Row {
-                IconButton(
-                    onClick = onRefresh,
-                    enabled = !isLoading
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Refresh,
-                        contentDescription = "Refresh data"
-                    )
-                }
-
-                IconButton(
-                    onClick = onNext,
-                    enabled = currentIndex < totalSemesters - 1 && !isLoading
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ArrowForward,
-                        contentDescription = "Next semester"
-                    )
-                }
             }
         }
     }
 }
 
-// Load data for a specific semester
-// This function has been moved inline to the LaunchedEffect
+@Composable
+fun ModernTestSection(
+    title: String,
+    results: List<Student>,
+    isLoading: Boolean = false
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(0.dp)
+    ) {
+        // Section Title
+        Text(
+            text = title,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Medium,
+            color = Color(0xFF808080),
+            modifier = Modifier.padding(vertical = 16.dp)
+        )
+
+        // Results Cards
+        if (isLoading) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                shape = RoundedCornerShape(12.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        color = Color.Red,
+                        strokeWidth = 2.dp
+                    )
+                }
+            }
+        } else {
+            results.take(10).forEachIndexed { index, student ->
+                StudentResultCard(
+                    student = student,
+                    position = index + 1,
+                    isFirst = index == 0,
+                    isLast = index == results.take(10).size - 1
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun StudentResultCard(
+    student: Student,
+    position: Int,
+    isFirst: Boolean,
+    isLast: Boolean
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = when {
+            isFirst && isLast -> RoundedCornerShape(12.dp)
+            isFirst -> RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
+            isLast -> RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)
+            else -> RoundedCornerShape(0.dp)
+        },
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Position and Name
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // Position Number
+                    Text(
+                        text = position.toString(),
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black,
+                        modifier = Modifier.width(24.dp),
+                        textAlign = TextAlign.Start
+                    )
+
+                    // Name and Class
+                    Column {
+                        Text(
+                            text = student.name.uppercase(),
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black,
+                            lineHeight = 20.sp
+                        )
+                        Text(
+                            text = student.className,
+                            fontSize = 14.sp,
+                            color = Color.Black,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+
+                // Score
+                Text(
+                    text = student.score,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.Black
+                )
+            }
+
+            // Divider (except for last item)
+            if (!isLast) {
+                HorizontalDivider(
+                    color = Color(0xFFF0F0F0),
+                    thickness = 1.dp,
+                    modifier = Modifier.padding(horizontal = 20.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ErrorCard(error: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color.Red.copy(alpha = 0.1f)),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Text(
+            text = error,
+            modifier = Modifier.padding(20.dp),
+            color = Color.Red,
+            fontSize = 16.sp
+        )
+    }
+}
+
+@Composable
+fun EmptyStateCard(year: String, level: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(40.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "No test results found for $level in $year",
+                fontSize = 16.sp,
+                color = Color.Gray,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
 
 // Helper function to format test names for display
 fun formatTestName(testName: String): String {
     return when (testName.lowercase()) {
-        "2.4km" -> "2.4km Run"
-        "inclinedpullups" -> "Inclined Pull-ups"
-        "pullups" -> "Pull-ups"
-        "situps" -> "Sit-ups"
-        "standingbroad" -> "Standing Broad Jump"
-        "sitandreach" -> "Sit and Reach"
-        else -> testName.replaceFirstChar { it.uppercase() }.replace("_", " ")
+        "2.4km" -> "2.4KM RUN"
+        "inclinedpullups" -> "INCLINED PULL-UPS"
+        "pullups" -> "PULL-UPS"
+        "situps" -> "SIT-UPS"
+        "standingbroad" -> "STANDING BROAD JUMP"
+        "sitandreach" -> "SIT AND REACH"
+        else -> testName.uppercase().replace("_", " ")
     }
 }
 
@@ -372,27 +544,48 @@ private fun parseStudentData(data: Map<String, Any>, testType: String): List<Stu
         Log.d("NapfaActivity", "Processing entry: key=$key, value=$value")
 
         val valueStr = value.toString()
-        val parts = valueStr.split("___")
+        val parts = valueStr.split("___") // Use triple underscore as separator
 
         if (parts.size >= 4) {
             Student(
-                rank = "#${parts[0]}",
+                rank = parts[0],
                 name = parts[1],
                 className = parts[2],
                 score = parts[3],
                 id = key
             )
-        } else {
-            Log.w("NapfaActivity", "Unexpected format for $key: $valueStr (${parts.size} parts)")
+        } else if (parts.size == 3) {
+            // Handle cases where rank might be missing or different format
             Student(
-                rank = "#${index + 1}",
-                name = valueStr.substringBefore("___").ifEmpty { key },
-                className = "Unknown",
-                score = valueStr.substringAfterLast("___").ifEmpty { valueStr },
+                rank = "${index + 1}",
+                name = parts[0],
+                className = parts[1],
+                score = parts[2],
                 id = key
             )
+        } else {
+            Log.w("NapfaActivity", "Unexpected format for $key: $valueStr (${parts.size} parts)")
+            // Fallback parsing with single underscore
+            val singleParts = valueStr.split("_")
+            if (singleParts.size >= 4) {
+                Student(
+                    rank = singleParts[0],
+                    name = singleParts[1],
+                    className = singleParts[2],
+                    score = singleParts.drop(3).joinToString("_"), // Join remaining parts for score
+                    id = key
+                )
+            } else {
+                Student(
+                    rank = "${index + 1}",
+                    name = valueStr.substringBefore("_").ifEmpty { key },
+                    className = "Unknown",
+                    score = valueStr.substringAfterLast("_").ifEmpty { valueStr },
+                    id = key
+                )
+            }
         }
-    }.sortedBy { it.rank.removePrefix("#").toIntOrNull() ?: 999 }
+    }.sortedBy { it.rank.toIntOrNull() ?: 999 }
 }
 
 // Helper function to parse student data from Firebase format (List)
@@ -402,181 +595,43 @@ private fun parseStudentList(data: List<String>, testType: String): List<Student
     return data.mapIndexed { index, value ->
         Log.d("NapfaActivity", "Processing list entry: $value")
 
-        val parts = value.split("___")
+        val parts = value.split("___") // Use triple underscore as separator
         if (parts.size >= 4) {
             Student(
-                rank = "#${parts[0]}",
+                rank = parts[0],
                 name = parts[1],
                 className = parts[2],
                 score = parts[3],
                 id = index.toString()
             )
-        } else {
+        } else if (parts.size == 3) {
             Student(
-                rank = "#${index + 1}",
-                name = value.substringBefore("___").ifEmpty { "Student ${index + 1}" },
-                className = "Unknown",
-                score = value.substringAfterLast("___").ifEmpty { value },
+                rank = "${index + 1}",
+                name = parts[0],
+                className = parts[1],
+                score = parts[2],
                 id = index.toString()
             )
-        }
-    }.sortedBy { it.rank.removePrefix("#").toIntOrNull() ?: 999 }
-}
-
-@Composable
-fun TestSection(
-    title: String,
-    results: List<Student>,
-    isLoading: Boolean = false
-) {
-    Column {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = title,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-
-            if (results.isNotEmpty()) {
-                Text(
-                    text = "${results.size} students",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+        } else {
+            // Fallback parsing with single underscore
+            val singleParts = value.split("_")
+            if (singleParts.size >= 4) {
+                Student(
+                    rank = singleParts[0],
+                    name = singleParts[1],
+                    className = singleParts[2],
+                    score = singleParts.drop(3).joinToString("_"),
+                    id = index.toString()
+                )
+            } else {
+                Student(
+                    rank = "${index + 1}",
+                    name = value.substringBefore("_").ifEmpty { "Student ${index + 1}" },
+                    className = "Unknown",
+                    score = value.substringAfterLast("_").ifEmpty { value },
+                    id = index.toString()
                 )
             }
         }
-
-        // Table
-        Card(
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-            shape = MaterialTheme.shapes.medium
-        ) {
-            Column {
-                // Header Row
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .padding(vertical = 12.dp, horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "#",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.weight(0.8f)
-                    )
-                    Text(
-                        text = "Name",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.weight(2f)
-                    )
-                    Text(
-                        text = "Class",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.weight(1.2f),
-                        textAlign = TextAlign.Center
-                    )
-                    Text(
-                        text = "Score",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.weight(1f),
-                        textAlign = TextAlign.End
-                    )
-                }
-
-                // Loading state
-                if (isLoading) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(32.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator(strokeWidth = 2.dp)
-                    }
-                } else {
-                    // Data Rows
-                    results.forEachIndexed { index, student ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(MaterialTheme.colorScheme.surface)
-                                .padding(vertical = 12.dp, horizontal = 16.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = student.rank,
-                                fontSize = 14.sp,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.weight(0.8f),
-                                fontWeight = if (index < 3) FontWeight.Bold else FontWeight.Normal
-                            )
-                            Text(
-                                text = student.name,
-                                fontSize = 14.sp,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.weight(2f)
-                            )
-                            Text(
-                                text = student.className,
-                                fontSize = 14.sp,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.weight(1.2f),
-                                textAlign = TextAlign.Center
-                            )
-                            Text(
-                                text = student.score,
-                                fontSize = 14.sp,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.weight(1f),
-                                textAlign = TextAlign.End,
-                                fontWeight = if (index < 3) FontWeight.Bold else FontWeight.Normal
-                            )
-                        }
-
-                        // Divider (only if not the last item)
-                        if (index < results.size - 1) {
-                            HorizontalDivider(
-                                color = MaterialTheme.colorScheme.outlineVariant,
-                                thickness = 0.5.dp
-                            )
-                        }
-                    }
-
-                    // Show message if no results
-                    if (results.isEmpty()) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(32.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "No results found",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontSize = 14.sp
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
+    }.sortedBy { it.rank.toIntOrNull() ?: 999 }
 }
