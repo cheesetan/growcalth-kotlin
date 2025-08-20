@@ -389,10 +389,12 @@ fun GoalItem(
 }
 
 @Composable
-fun HomeTab(onGoalClick: () -> Unit = {}) {
+fun HomeTab(onGoalClick: () -> Unit = {}, viewModel: HealthDataView = androidx.lifecycle.viewmodel.compose.viewModel()) {
     var topHousePoints by remember { mutableStateOf<List<HousePoints>>(emptyList()) }
     var isLoadingLeaderboard by remember { mutableStateOf(true) }
 
+    val steps by viewModel.steps.collectAsState(inital = 0L)
+    val distance by viewModel.distance.collectAsState(initial = 0.0)
     // Load top 3 house points from Firebase
     LaunchedEffect(Unit) {
         try {
@@ -437,7 +439,7 @@ fun HomeTab(onGoalClick: () -> Unit = {}) {
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             HealthMetricCard(
-                value = "11,307",
+                value = "11,307 Real: $steps",
                 unit = "steps",
                 remaining = "0 steps left",
                 progress = 1f,
@@ -445,7 +447,7 @@ fun HomeTab(onGoalClick: () -> Unit = {}) {
             )
 
             HealthMetricCard(
-                value = "7.96",
+                value = "7.96 Real:  ${String.format("%.2f", distance / 1000)}",
                 unit = "km",
                 remaining = "0.00 km left",
                 progress = 0.8f,
