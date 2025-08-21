@@ -41,7 +41,6 @@ android {
 }
 
 dependencies {
-
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -52,14 +51,27 @@ dependencies {
     implementation(libs.androidx.material3)
 
     // DataStore dependencies
-    implementation("androidx.datastore:datastore-preferences:1.0.0")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
+    implementation("androidx.datastore:datastore-preferences:1.1.7")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.2")
+
+    // Firebase dependencies
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.auth)
+
+    // Auth dependencies
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services.auth)
     implementation(libs.googleid)
 
+    // Health Connect dependencies - Updated to stable version
+    implementation("androidx.health.connect:connect-client:1.1.0-alpha10")
+
+    // Coroutines support (often needed for Health Connect)
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+    // Permission handling (useful for Health Connect permissions)
+    implementation("androidx.activity:activity-compose:1.9.3")
+
+    // Testing dependencies
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -67,7 +79,4 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
-
-    implementation("com.google.android.gms:play-services-fitness:21.1.0")
-    implementation("androidx.health.connect:connect-client:1.1.0-alpha06")
 }

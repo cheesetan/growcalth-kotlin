@@ -9,7 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.LocationOn
@@ -61,28 +61,31 @@ fun AnnouncementsTab(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface)
+            .background(Color(0xFFF8F9FA))
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = 16.dp)
         ) {
-            // Segmented Control
+            // Segmented Control with more modern design
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                shape = RoundedCornerShape(12.dp)
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFE8E8E8)),
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(4.dp)
                 ) {
                     // Announcements Tab
                     Box(
                         modifier = Modifier
                             .weight(1f)
                             .background(
-                                if (selectedTab == 0) MaterialTheme.colorScheme.surface else Color.Transparent,
+                                if (selectedTab == 0) Color.White else Color.Transparent,
                                 RoundedCornerShape(12.dp)
                             )
                             .clickable { selectedTab = 0 }
@@ -92,8 +95,8 @@ fun AnnouncementsTab(
                         Text(
                             text = "Announcements",
                             fontSize = 14.sp,
-                            fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Normal,
-                            color = if (selectedTab == 0) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+                            fontWeight = if (selectedTab == 0) FontWeight.SemiBold else FontWeight.Medium,
+                            color = if (selectedTab == 0) Color(0xFF1A1A1A) else Color(0xFF666666)
                         )
                     }
 
@@ -102,7 +105,7 @@ fun AnnouncementsTab(
                         modifier = Modifier
                             .weight(1f)
                             .background(
-                                if (selectedTab == 1) MaterialTheme.colorScheme.surface else Color.Transparent,
+                                if (selectedTab == 1) Color.White else Color.Transparent,
                                 RoundedCornerShape(12.dp)
                             )
                             .clickable { selectedTab = 1 }
@@ -112,14 +115,14 @@ fun AnnouncementsTab(
                         Text(
                             text = "Events",
                             fontSize = 14.sp,
-                            fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Normal,
-                            color = if (selectedTab == 1) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+                            fontWeight = if (selectedTab == 1) FontWeight.SemiBold else FontWeight.Medium,
+                            color = if (selectedTab == 1) Color(0xFF1A1A1A) else Color(0xFF666666)
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             // Content based on selected tab
             when (selectedTab) {
@@ -132,11 +135,10 @@ fun AnnouncementsTab(
                     } else {
                         AnnouncementsContent(
                             onAnnouncementClick = { title, content, timestamp ->
-                                // Find the announcement by title to show full details
                                 selectedAnnouncement = Announcement(
                                     header = title,
                                     text = content,
-                                    dateAdded = null // We'll handle this in the detail view
+                                    dateAdded = null
                                 )
                                 onAnnouncementClick(title, content, timestamp)
                             }
@@ -164,9 +166,6 @@ fun AnnouncementsTab(
                 }
             }
         }
-
-        // Floating Action Button
-
     }
 }
 
@@ -227,7 +226,7 @@ fun AnnouncementsContent(
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator(
-                        color = MaterialTheme.colorScheme.primary
+                        color = Color(0xFF007AFF)
                     )
                 }
             }
@@ -236,13 +235,13 @@ fun AnnouncementsContent(
                 // Error state
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
-                    shape = RoundedCornerShape(12.dp)
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE)),
+                    shape = RoundedCornerShape(16.dp)
                 ) {
                     Text(
                         text = errorMessage ?: "Unknown error occurred",
                         modifier = Modifier.padding(16.dp),
-                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        color = Color(0xFFD32F2F),
                         fontSize = 14.sp
                     )
                 }
@@ -262,20 +261,20 @@ fun AnnouncementsContent(
                         imageVector = Icons.Default.Notifications,
                         contentDescription = "No announcements",
                         modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        tint = Color(0xFFBBBBBB)
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         text = "No announcements yet",
                         fontSize = 18.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF666666)
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = "Check back later for updates",
                         fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        color = Color(0xFF999999),
                         textAlign = TextAlign.Center
                     )
                 }
@@ -284,11 +283,10 @@ fun AnnouncementsContent(
             else -> {
                 // Display announcements
                 announcements.forEachIndexed { index, announcement ->
-                    AnnouncementCard(
+                    ModernAnnouncementCard(
                         title = announcement.header,
-                        snippet = announcement.text.take(50) + if (announcement.text.length > 50) "..." else "",
-                        timestamp = formatTimestamp(announcement.dateAdded),
                         content = announcement.text,
+                        timestamp = formatTimestamp(announcement.dateAdded),
                         onCardClick = {
                             onAnnouncementClick(
                                 announcement.header,
@@ -303,7 +301,7 @@ fun AnnouncementsContent(
                     }
                 }
 
-                // Extra space for FAB
+                // Extra space for bottom navigation
                 Spacer(modifier = Modifier.height(100.dp))
             }
         }
@@ -311,108 +309,86 @@ fun AnnouncementsContent(
 }
 
 @Composable
-fun AnnouncementDetailView(
-    announcement: Announcement,
-    onBack: () -> Unit
+fun ModernAnnouncementCard(
+    title: String,
+    content: String,
+    timestamp: String,
+    onCardClick: () -> Unit = {}
 ) {
-    Column(
+    Card(
         modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
+            .fillMaxWidth()
+            .clickable { onCardClick() },
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(16.dp)
     ) {
-        // Back button and header
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(20.dp)
         ) {
-            IconButton(
-                onClick = onBack,
-                modifier = Modifier.size(40.dp)
+            // Header row with title and timestamp
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
             ) {
-                Icon(
-                    imageVector = androidx.compose.material.icons.Icons.Default.ArrowBack,
-                    contentDescription = "Back",
-                    tint = MaterialTheme.colorScheme.onSurface
-                )
-            }
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            Text(
-                text = "Announcement",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-        }
-
-        // Content card
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(20.dp)
-            ) {
-                // Title
                 Text(
-                    text = announcement.header,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    lineHeight = 26.sp
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Timestamp and author
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (announcement.name.isNotEmpty()) {
-                        Text(
-                            text = "By ${announcement.name}",
-                            fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontWeight = FontWeight.Medium
-                        )
-
-                        if (announcement.dateAdded != null) {
-                            Text(
-                                text = " • ",
-                                fontSize = 14.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-
-                    if (announcement.dateAdded != null) {
-                        Text(
-                            text = formatTimestamp(announcement.dateAdded),
-                            fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                // Full content
-                Text(
-                    text = announcement.text,
+                    text = title,
                     fontSize = 16.sp,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    lineHeight = 24.sp
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF1A1A1A),
+                    modifier = Modifier.weight(1f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Text(
+                    text = timestamp,
+                    fontSize = 12.sp,
+                    color = Color(0xFF999999),
+                    modifier = Modifier.padding(start = 12.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Content preview
+            Text(
+                text = "Dear Students,",
+                fontSize = 14.sp,
+                color = Color(0xFF666666),
+                fontWeight = FontWeight.Medium
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Content snippet with "Lorem ipsum" style
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = content.take(60) + if (content.length > 60) "..." else "",
+                    fontSize = 14.sp,
+                    color = Color(0xFF666666),
+                    modifier = Modifier.weight(1f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowRight,
+                    contentDescription = "View details",
+                    tint = Color(0xFFCCCCCC),
+                    modifier = Modifier
+                        .size(24.dp)
+                        .padding(start = 8.dp)
                 )
             }
         }
-
-        // Extra space for FAB
-        Spacer(modifier = Modifier.height(100.dp))
     }
 }
 
@@ -428,7 +404,7 @@ fun EventsContent(
     LaunchedEffect(Unit) {
         try {
             val db = FirebaseFirestore.getInstance()
-            val result = db.collection("houseevents")
+            val result = db.collection("schools").document("sst").collection("houseEvents")
                 .orderBy("dateAdded", Query.Direction.DESCENDING)
                 .get()
                 .await()
@@ -468,38 +444,32 @@ fun EventsContent(
     ) {
         when {
             isLoading -> {
-                // Loading state
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(32.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    CircularProgressIndicator(color = Color(0xFF007AFF))
                 }
             }
 
             errorMessage != null -> {
-                // Error state
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
-                    shape = RoundedCornerShape(12.dp)
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE)),
+                    shape = RoundedCornerShape(16.dp)
                 ) {
                     Text(
                         text = errorMessage ?: "Unknown error occurred",
                         modifier = Modifier.padding(16.dp),
-                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        color = Color(0xFFD32F2F),
                         fontSize = 14.sp
                     )
                 }
-                Spacer(modifier = Modifier.height(16.dp))
             }
 
             events.isEmpty() -> {
-                // Empty state
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -511,41 +481,35 @@ fun EventsContent(
                         imageVector = Icons.Default.Notifications,
                         contentDescription = "No events",
                         modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        tint = Color(0xFFBBBBBB)
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         text = "No events yet",
                         fontSize = 18.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF666666)
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = "Check back later for upcoming events",
                         fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        color = Color(0xFF999999),
                         textAlign = TextAlign.Center
                     )
                 }
             }
 
             else -> {
-                // Display events
                 events.forEachIndexed { index, event ->
-                    EventCard(
+                    ModernEventCard(
                         title = event.header,
                         description = event.desc,
                         date = event.date,
                         venue = event.venue,
                         timestamp = formatTimestamp(event.dateAdded),
                         onCardClick = {
-                            onEventClick(
-                                event.header,
-                                event.desc,
-                                event.date,
-                                event.venue
-                            )
+                            onEventClick(event.header, event.desc, event.date, event.venue)
                         }
                     )
 
@@ -554,7 +518,6 @@ fun EventsContent(
                     }
                 }
 
-                // Extra space for FAB
                 Spacer(modifier = Modifier.height(100.dp))
             }
         }
@@ -562,8 +525,106 @@ fun EventsContent(
 }
 
 @Composable
-fun EventDetailView(
-    event: HouseEvent,
+fun ModernEventCard(
+    title: String,
+    description: String,
+    date: String,
+    venue: String,
+    timestamp: String,
+    onCardClick: () -> Unit = {}
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onCardClick() },
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Text(
+                    text = title,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF1A1A1A),
+                    modifier = Modifier.weight(1f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowRight,
+                    contentDescription = "View details",
+                    tint = Color(0xFFCCCCCC),
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            if (date.isNotEmpty()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.DateRange,
+                        contentDescription = "Date",
+                        modifier = Modifier.size(16.dp),
+                        tint = Color(0xFF666666)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = date,
+                        fontSize = 14.sp,
+                        color = Color(0xFF666666)
+                    )
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+
+            if (venue.isNotEmpty()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.LocationOn,
+                        contentDescription = "Venue",
+                        modifier = Modifier.size(16.dp),
+                        tint = Color(0xFF666666)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = venue,
+                        fontSize = 14.sp,
+                        color = Color(0xFF666666),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
+            if (description.isNotEmpty()) {
+                Text(
+                    text = description.take(100) + if (description.length > 100) "..." else "",
+                    fontSize = 14.sp,
+                    color = Color(0xFF666666),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun AnnouncementDetailView(
+    announcement: Announcement,
     onBack: () -> Unit
 ) {
     Column(
@@ -585,7 +646,77 @@ fun EventDetailView(
                 Icon(
                     imageVector = Icons.Default.ArrowBack,
                     contentDescription = "Back",
-                    tint = MaterialTheme.colorScheme.onSurface
+                    tint = Color(0xFF1A1A1A)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Text(
+                text = "Announcement",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF1A1A1A)
+            )
+        }
+
+        // Content card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp)
+            ) {
+                Text(
+                    text = announcement.header,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF1A1A1A),
+                    lineHeight = 26.sp
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = announcement.text,
+                    fontSize = 16.sp,
+                    color = Color(0xFF666666),
+                    lineHeight = 24.sp
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(100.dp))
+    }
+}
+
+@Composable
+fun EventDetailView(
+    event: HouseEvent,
+    onBack: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(
+                onClick = onBack,
+                modifier = Modifier.size(40.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ArrowBack,
+                    contentDescription = "Back",
+                    tint = Color(0xFF1A1A1A)
                 )
             }
 
@@ -595,47 +726,42 @@ fun EventDetailView(
                 text = "Event Details",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = Color(0xFF1A1A1A)
             )
         }
 
-        // Content card
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(16.dp)
         ) {
             Column(
                 modifier = Modifier.padding(20.dp)
             ) {
-                // Title
                 Text(
                     text = event.header,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = Color(0xFF1A1A1A),
                     lineHeight = 26.sp
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Date and venue info
                 if (event.date.isNotEmpty()) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = androidx.compose.material.icons.Icons.Default.DateRange,
+                            imageVector = Icons.Default.DateRange,
                             contentDescription = "Date",
                             modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = Color(0xFF007AFF)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = event.date,
                             fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.onSurface,
+                            color = Color(0xFF1A1A1A),
                             fontWeight = FontWeight.Medium
                         )
                     }
@@ -643,222 +769,43 @@ fun EventDetailView(
                 }
 
                 if (event.venue.isNotEmpty()) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = androidx.compose.material.icons.Icons.Default.LocationOn,
+                            imageVector = Icons.Default.LocationOn,
                             contentDescription = "Venue",
                             modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = Color(0xFF007AFF)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = event.venue,
                             fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.onSurface,
+                            color = Color(0xFF1A1A1A),
                             fontWeight = FontWeight.Medium
                         )
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                 }
 
-                // Description
                 if (event.desc.isNotEmpty()) {
                     Text(
                         text = "Description",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = Color(0xFF1A1A1A)
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = event.desc,
                         fontSize = 16.sp,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = Color(0xFF666666),
                         lineHeight = 24.sp
                     )
                 }
             }
         }
 
-        // Extra space for FAB
         Spacer(modifier = Modifier.height(100.dp))
-    }
-}
-
-@Composable
-fun EventCard(
-    title: String,
-    description: String,
-    date: String,
-    venue: String,
-    timestamp: String,
-    onCardClick: () -> Unit = {}
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onCardClick() },
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            // Header row with title and arrow
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
-            ) {
-                Text(
-                    text = title,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.weight(1f),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                Icon(
-                    imageVector = Icons.Default.PlayArrow,
-                    contentDescription = "View details",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Date and venue
-            if (date.isNotEmpty()) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = androidx.compose.material.icons.Icons.Default.DateRange,
-                        contentDescription = "Date",
-                        modifier = Modifier.size(14.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = date,
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Spacer(modifier = Modifier.height(4.dp))
-            }
-
-            if (venue.isNotEmpty()) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = androidx.compose.material.icons.Icons.Default.LocationOn,
-                        contentDescription = "Venue",
-                        modifier = Modifier.size(14.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = venue,
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-
-            // Description preview
-            if (description.isNotEmpty()) {
-                Text(
-                    text = description.take(100) + if (description.length > 100) "..." else "",
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun AnnouncementCard(
-    title: String,
-    snippet: String,
-    timestamp: String,
-    content: String = "",
-    onCardClick: () -> Unit = {}
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onCardClick() },
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Content
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = title,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = snippet,
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    Text(
-                        text = timestamp,
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            // Play arrow icon
-            Icon(
-                imageVector = Icons.Default.PlayArrow,
-                contentDescription = "Read more",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(20.dp)
-            )
-        }
     }
 }
 

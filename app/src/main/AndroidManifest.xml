@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Basic permissions -->
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.health.READ_STEPS"/>
-    <uses-permission android:name="android.permission.health.WRITE_STEPS"/>
-    <uses-permission android:name="android.permission.health.READ_DISTANCE"/>
-    <uses-permission android:name="android.permission.health.WRITE_DISTANCE"/>
+
+    <!-- Health Connect Permissions -->
+    <uses-permission android:name="android.permission.health.READ_STEPS" />
+    <uses-permission android:name="android.permission.health.READ_DISTANCE" />
 
     <application
         android:allowBackup="true"
@@ -15,11 +17,15 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.GrowCalth">
+        android:theme="@style/Theme.GrowCalth"
+        tools:targetApi="31">
 
-        <activity android:name=".SignUpActivity" />
-        <activity android:name=".LandingPageActivity" />
-        <activity android:name=".LeaderboardActivity" />
+        <activity android:name=".SignUpActivity"
+            android:exported="false" />
+        <activity android:name=".LandingPageActivity"
+            android:exported="false" />
+        <activity android:name=".LeaderboardActivity"
+            android:exported="false" />
         <activity
             android:name=".AcknowledgementsActivity"
             android:exported="false"
@@ -28,7 +34,6 @@
             android:name=".CalculatorActivity"
             android:exported="false"
             android:theme="@style/Theme.GrowCalth" />
-
         <activity
             android:name=".AccountActivity"
             android:exported="false"
@@ -39,7 +44,6 @@
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.GrowCalth">
-
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

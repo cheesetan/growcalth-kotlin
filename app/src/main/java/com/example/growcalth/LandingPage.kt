@@ -16,10 +16,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -35,6 +32,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.geometry.Size
@@ -59,6 +57,9 @@ import com.google.firebase.firestore.Query
 import kotlinx.coroutines.tasks.await
 import java.text.NumberFormat
 import java.util.*
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 
 class LandingPageActivity : ComponentActivity() {
     private lateinit var db: FirebaseFirestore
@@ -78,13 +79,17 @@ class LandingPageActivity : ComponentActivity() {
         }
     }
 }
+sealed class IconType {
+    data class Vector(val imageVector: ImageVector) : IconType()
+    data class Drawable(val painter: @Composable () -> Painter) : IconType()
+}
 
-enum class Destination(val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector) {
-    HOME("Home", Icons.Default.Home),
-    ANNOUNCEMENTS("Updates", Icons.Default.Notifications),
-    CHALLENGES("Challenges", Icons.Default.Star),
-    NAPFA("NAPFA", Icons.Default.Person),
-    SETTINGS("Settings", Icons.Default.Settings),
+enum class Destination(val label: String, val icon: IconType) {
+    HOME("Home", IconType.Vector(Icons.Default.Home)),
+    ANNOUNCEMENTS("Announcements", IconType.Drawable { painterResource(id = R.drawable.campaign_24px) }),
+    CHALLENGES("Challenges", IconType.Drawable { painterResource(id = R.drawable.flag_24px) }),
+    NAPFA("NAPFA", IconType.Drawable { painterResource(id = R.drawable.directions_run_24px) }),
+    SETTINGS("Settings", IconType.Vector(Icons.Default.Settings)),
 }
 
 @Composable
@@ -140,25 +145,30 @@ fun LandingPage(db: FirebaseFirestore, modifier: Modifier = Modifier) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 16.dp)
+                    .padding(horizontal = 24.dp, vertical = 36.dp)
+                    .shadow(
+                        elevation = 16.dp, // You can increase/decrease this for bigger shadow
+                        shape = RoundedCornerShape(40.dp), // Rounded corners for smooth shadow
+                        ambientColor = Color(0xFF2B2B2E),
+                        spotColor = Color(0xFF2B2B2E)
+                    )
             ) {
                 // Responsive navigation bar
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(95.dp) // Fixed height - shorter than before
-                        .clip(RoundedCornerShape(40.dp))
+                        .height(75.dp) // Fixed height - shorter than before
+                        .clip(RoundedCornerShape(32.dp))
                         .background(
                             color = Color.White, // White border color
                             shape = RoundedCornerShape(40.dp)
                         )
-                        .padding(4.dp) // 4 pixel white border
-                        .clip(RoundedCornerShape(36.dp))
+                        .padding(2.dp) // 4 pixel white border
+                        .clip(RoundedCornerShape(30.dp))
                         .background(
                             color = Color(0xFFF0F0F5), // Much lighter background
                             shape = RoundedCornerShape(36.dp)
                         )
-                        .padding(horizontal = 8.dp, vertical = 10.dp) // Balanced padding
                 ) {
                     Row(
                         modifier = Modifier.fillMaxSize(),
@@ -206,42 +216,57 @@ fun NavigationItem(
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp), // Consistent spacing
+        verticalArrangement = Arrangement.spacedBy(12.dp), // Slightly reduced spacing
         modifier = Modifier
             .clickable { onClick() }
-            .fillMaxHeight() // Use full available height
-            .width(60.dp) // Fixed width for consistency
-            .padding(horizontal = 2.dp, vertical = 4.dp) // Responsive padding
+            .width(40.dp) // Slightly wider for better proportions
+            .padding(horizontal = 2.dp, vertical = 2.dp)
     ) {
         // Icon with circular radial background for active tab
         Box(
             modifier = Modifier
-                .size(32.dp) // Fixed responsive size
+                .size(40.dp) // Container size
                 .aspectRatio(1f), // Keep it circular
             contentAlignment = Alignment.Center
         ) {
-            // Circular radial background for active tab
+            // Radial background behind icon when selected
             if (isSelected) {
                 Box(
                     modifier = Modifier
-                        .size(28.dp) // 90% of container size
+                        .size(66.dp)
+                        .padding(vertical = 5.dp)
                         .clip(CircleShape)
                         .background(Color(0xFFFFCDD2))
                 )
             }
 
-            Icon(
-                imageVector = destination.icon,
-                contentDescription = destination.label,
-                modifier = Modifier.size(18.dp), // 60% of container size
-                tint = if (isSelected) Color(0xFFE91E63) else Color(0xFF424242)
-            )
+            // Handle both Vector and Drawable icons
+            when (destination.icon) {
+                is IconType.Vector -> {
+                    Icon(
+                        imageVector = destination.icon.imageVector,
+                        contentDescription = destination.label,
+                    modifier = Modifier.size(60.dp)
+                        .padding(vertical = 5.dp),
+                    tint = if (isSelected) Color(0xFFE91E63) else Color(0xFF424242)
+                    )
+                }
+                is IconType.Drawable -> {
+                    Icon(
+                        painter = destination.icon.painter(),
+                        contentDescription = destination.label,
+                    modifier = Modifier.size(60.dp)
+                        .padding(vertical = 5.dp),
+                    tint = if (isSelected) Color(0xFFE91E63) else Color(0xFF424242)
+                    )
+                }
+            }
         }
 
-        // Label - responsive text
+        // Label - slight overlap with radial background
         Text(
             text = destination.label,
-            fontSize = 10.sp,
+            fontSize = 8.sp,
             fontWeight = FontWeight.Bold,
             color = if (isSelected) Color(0xFFE91E63) else Color(0xFF000000),
             textAlign = TextAlign.Center,
@@ -249,9 +274,12 @@ fun NavigationItem(
             modifier = Modifier
                 .fillMaxWidth()
                 .wrapContentHeight()
+                .offset(y = (-16).dp)
+
         )
     }
 }
+
 
 @Composable
 fun GoalDialog(onDismiss: () -> Unit) {
@@ -389,12 +417,10 @@ fun GoalItem(
 }
 
 @Composable
-fun HomeTab(onGoalClick: () -> Unit = {}, viewModel: HealthDataView = androidx.lifecycle.viewmodel.compose.viewModel()) {
+fun HomeTab(onGoalClick: () -> Unit = {}) {
     var topHousePoints by remember { mutableStateOf<List<HousePoints>>(emptyList()) }
     var isLoadingLeaderboard by remember { mutableStateOf(true) }
 
-    val steps by viewModel.steps.collectAsState(inital = 0L)
-    val distance by viewModel.distance.collectAsState(initial = 0.0)
     // Load top 3 house points from Firebase
     LaunchedEffect(Unit) {
         try {
@@ -439,7 +465,7 @@ fun HomeTab(onGoalClick: () -> Unit = {}, viewModel: HealthDataView = androidx.l
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             HealthMetricCard(
-                value = "11,307 Real: $steps",
+                value = "11,307",
                 unit = "steps",
                 remaining = "0 steps left",
                 progress = 1f,
@@ -447,7 +473,7 @@ fun HomeTab(onGoalClick: () -> Unit = {}, viewModel: HealthDataView = androidx.l
             )
 
             HealthMetricCard(
-                value = "7.96 Real:  ${String.format("%.2f", distance / 1000)}",
+                value = "7.96",
                 unit = "km",
                 remaining = "0.00 km left",
                 progress = 0.8f,
