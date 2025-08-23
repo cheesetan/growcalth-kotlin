@@ -30,7 +30,7 @@ import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
 import java.util.*
 
-// Data class for Announcement
+// Data classes remain the same
 data class Announcement(
     val id: String = "",
     val header: String = "",
@@ -39,7 +39,6 @@ data class Announcement(
     val dateAdded: Date? = null
 )
 
-// Data class for Event
 data class HouseEvent(
     val id: String = "",
     val header: String = "",
@@ -61,64 +60,61 @@ fun AnnouncementsTab(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF8F9FA))
+            .background(Color.White) // Light mode background
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 16.dp)
         ) {
-            // Segmented Control with more modern design
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFE8E8E8)),
-                shape = RoundedCornerShape(16.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            // Modern Capsule Segmented Control
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        color = Color(0xFFF0F0F0),
+                        shape = RoundedCornerShape(50.dp) // Full capsule shape
+                    )
+                    .padding(4.dp)
             ) {
-                Row(
+                // Announcements Tab
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(4.dp)
+                        .weight(1f)
+                        .background(
+                            if (selectedTab == 0) Color.White else Color.Transparent,
+                            RoundedCornerShape(46.dp) // Inner capsule
+                        )
+                        .clickable { selectedTab = 0 }
+                        .padding(vertical = 14.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    // Announcements Tab
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .background(
-                                if (selectedTab == 0) Color.White else Color.Transparent,
-                                RoundedCornerShape(12.dp)
-                            )
-                            .clickable { selectedTab = 0 }
-                            .padding(vertical = 12.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "Announcements",
-                            fontSize = 14.sp,
-                            fontWeight = if (selectedTab == 0) FontWeight.SemiBold else FontWeight.Medium,
-                            color = if (selectedTab == 0) Color(0xFF1A1A1A) else Color(0xFF666666)
-                        )
-                    }
+                    Text(
+                        text = "Announcements",
+                        fontSize = 14.sp,
+                        fontWeight = if (selectedTab == 0) FontWeight.SemiBold else FontWeight.Medium,
+                        color = if (selectedTab == 0) Color(0xFF1A1A1A) else Color(0xFF666666)
+                    )
+                }
 
-                    // Events Tab
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .background(
-                                if (selectedTab == 1) Color.White else Color.Transparent,
-                                RoundedCornerShape(12.dp)
-                            )
-                            .clickable { selectedTab = 1 }
-                            .padding(vertical = 12.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "Events",
-                            fontSize = 14.sp,
-                            fontWeight = if (selectedTab == 1) FontWeight.SemiBold else FontWeight.Medium,
-                            color = if (selectedTab == 1) Color(0xFF1A1A1A) else Color(0xFF666666)
+                // Events Tab
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .background(
+                            if (selectedTab == 1) Color.White else Color.Transparent,
+                            RoundedCornerShape(46.dp) // Inner capsule
                         )
-                    }
+                        .clickable { selectedTab = 1 }
+                        .padding(vertical = 14.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Events",
+                        fontSize = 14.sp,
+                        fontWeight = if (selectedTab == 1) FontWeight.SemiBold else FontWeight.Medium,
+                        color = if (selectedTab == 1) Color(0xFF1A1A1A) else Color(0xFF666666)
+                    )
                 }
             }
 
@@ -226,7 +222,7 @@ fun AnnouncementsContent(
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator(
-                        color = Color(0xFF007AFF)
+                        color = Color(0xFFE91E63)
                     )
                 }
             }
@@ -364,7 +360,7 @@ fun ModernAnnouncementCard(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            // Content snippet with "Lorem ipsum" style
+            // Content snippet with arrow
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -450,7 +446,7 @@ fun EventsContent(
                         .padding(32.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(color = Color(0xFF007AFF))
+                    CircularProgressIndicator(color = Color(0xFFE91E63))
                 }
             }
 
@@ -755,7 +751,7 @@ fun EventDetailView(
                             imageVector = Icons.Default.DateRange,
                             contentDescription = "Date",
                             modifier = Modifier.size(16.dp),
-                            tint = Color(0xFF007AFF)
+                            tint = Color(0xFFE91E63)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
@@ -774,7 +770,7 @@ fun EventDetailView(
                             imageVector = Icons.Default.LocationOn,
                             contentDescription = "Venue",
                             modifier = Modifier.size(16.dp),
-                            tint = Color(0xFF007AFF)
+                            tint = Color(0xFFE91E63)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(

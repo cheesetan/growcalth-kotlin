@@ -181,7 +181,7 @@ fun NapfaScreen(db: FirebaseFirestore) {
                 } else {
                     Log.w("NapfaActivity", "No document found for $documentId")
                     testResults = emptyList()
-                    error = "No data found for $selectedLevel in $currentYear"
+                    error = null // Don't set error, let it show empty state instead
                 }
             } catch (e: Exception) {
                 Log.e("NapfaActivity", "Error loading data for year $currentYear", e)
@@ -195,17 +195,27 @@ fun NapfaScreen(db: FirebaseFirestore) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF8F9FA))
+            .background(Color.White) // Light mode background
     ) {
         if (isLoading) {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator(color = Color.Red)
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    CircularProgressIndicator(color = Color(0xFFE91E63))
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Loading NAPFA data...",
+                        color = Color(0xFF666666),
+                        fontSize = 16.sp
+                    )
+                }
             }
         } else {
-
             // Year Dropdown and Level Selection
             Row(
                 modifier = Modifier
@@ -228,10 +238,10 @@ fun NapfaScreen(db: FirebaseFirestore) {
                             ExposedDropdownMenuDefaults.TrailingIcon(expanded = showYearDropdown)
                         },
                         colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedBorderColor = Color(0xFFDFDFE5),
-                            focusedBorderColor = Color(0xFFDFDFE5),
-                            unfocusedContainerColor = Color(0xFFDFDFE5),
-                            focusedContainerColor = Color(0xFFDFDFE5)
+                            unfocusedBorderColor = Color(0xFFE0E0E0),
+                            focusedBorderColor = Color(0xFFE0E0E0),
+                            unfocusedContainerColor = Color(0xFFF8F9FA),
+                            focusedContainerColor = Color(0xFFF8F9FA)
                         ),
                         shape = RoundedCornerShape(25.dp),
                         modifier = Modifier
@@ -284,7 +294,8 @@ fun NapfaScreen(db: FirebaseFirestore) {
                     }
                 } else if (!isLoadingData) {
                     item {
-                        EmptyStateCard(year = currentYear, level = selectedLevel)
+                        // Better No Data State like the second image
+                        NapfaNoDataState(year = currentYear, level = selectedLevel)
                     }
                 }
 
@@ -297,6 +308,106 @@ fun NapfaScreen(db: FirebaseFirestore) {
     }
 }
 
+@Composable
+fun NapfaNoDataState(year: String, level: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(60.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            // Question mark icon in a dashed border box (similar to the image)
+            Box(
+                modifier = Modifier
+                    .size(80.dp)
+                    .background(
+                        color = Color.Transparent,
+                        shape = RoundedCornerShape(12.dp)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                // Dashed border effect using multiple boxes
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            color = Color(0xFFE0E0E0),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        .padding(2.dp)
+                        .background(
+                            color = Color.White,
+                            shape = RoundedCornerShape(10.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "?",
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFBBBBBB)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Text(
+                text = "No Data",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF1A1A1A)
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "There is no data available for $year $level\nNAPFA at the moment.",
+                fontSize = 16.sp,
+                color = Color(0xFF666666),
+                textAlign = TextAlign.Center,
+                lineHeight = 22.sp
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Refresh button similar to the image
+            Button(
+                onClick = { /* Add refresh logic here */ },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFE91E63)
+                ),
+                shape = RoundedCornerShape(25.dp),
+                modifier = Modifier.padding(horizontal = 20.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "Refresh",
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        text = "Refresh",
+                        color = Color.White,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        }
+    }
+}
 
 @Composable
 fun LevelSelectionTabs(
@@ -315,8 +426,8 @@ fun LevelSelectionTabs(
                 modifier = Modifier
                     .clip(RoundedCornerShape(20.dp))
                     .background(
-                        if (selectedLevel == level) Color(0xFF4F4F52)
-                        else Color(0xFFDFDFE5)
+                        if (selectedLevel == level) Color(0xFF1A1A1A)
+                        else Color(0xFFF0F0F0)
                     )
                     .clickable { onLevelSelected(level) }
                     .padding(horizontal = 16.dp, vertical = 8.dp),
@@ -353,7 +464,7 @@ fun ModernTestSection(
                 text = title,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = Color.Black,
+                color = Color(0xFF1A1A1A),
                 modifier = Modifier.padding(bottom = 12.dp)
             )
 
@@ -405,7 +516,7 @@ fun ModernTestSection(
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator(
-                        color = Color.Red,
+                        color = Color(0xFFE91E63),
                         strokeWidth = 2.dp
                     )
                 }
@@ -444,7 +555,7 @@ fun StudentResultRow(
             text = "#$position",
             fontSize = 14.sp,
             fontWeight = FontWeight.Medium,
-            color = Color.Black,
+            color = Color(0xFF1A1A1A),
             modifier = Modifier.width(32.dp)
         )
 
@@ -453,7 +564,7 @@ fun StudentResultRow(
             text = student.name,
             fontSize = 14.sp,
             fontWeight = FontWeight.Medium,
-            color = Color.Black,
+            color = Color(0xFF1A1A1A),
             modifier = Modifier.weight(1f)
         )
 
@@ -471,7 +582,7 @@ fun StudentResultRow(
             text = student.score,
             fontSize = 14.sp,
             fontWeight = FontWeight.Medium,
-            color = Color.Black,
+            color = Color(0xFF1A1A1A),
             modifier = Modifier.width(80.dp),
             textAlign = TextAlign.End
         )
@@ -507,38 +618,15 @@ fun MyRecordsSection() {
 fun ErrorCard(error: String) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color.Red.copy(alpha = 0.1f)),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE)),
         shape = RoundedCornerShape(12.dp)
     ) {
         Text(
             text = error,
             modifier = Modifier.padding(20.dp),
-            color = Color.Red,
+            color = Color(0xFFD32F2F),
             fontSize = 16.sp
         )
-    }
-}
-
-@Composable
-fun EmptyStateCard(year: String, level: String) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(40.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "No test results found for $level in $year",
-                fontSize = 16.sp,
-                color = Color.Gray,
-                textAlign = TextAlign.Center
-            )
-        }
     }
 }
 

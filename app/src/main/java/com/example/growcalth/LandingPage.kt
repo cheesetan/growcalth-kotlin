@@ -5,6 +5,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -17,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -37,6 +40,8 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.Offset
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.health.connect.client.HealthConnectClient
 import com.example.growcalth.ui.theme.GrowCalthTheme
 import com.example.growcalth.ui.theme.Accent
 import com.example.growcalth.ui.theme.Surface
@@ -63,6 +68,7 @@ import androidx.compose.ui.res.painterResource
 
 class LandingPageActivity : ComponentActivity() {
     private lateinit var db: FirebaseFirestore
+    private lateinit var permissionLauncher: ActivityResultLauncher<Array<String>>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -72,13 +78,21 @@ class LandingPageActivity : ComponentActivity() {
         FirebaseApp.initializeApp(this)
         db = FirebaseFirestore.getInstance()
 
+        // Setup permission launcher
+        permissionLauncher = registerForActivityResult(
+            ActivityResultContracts.RequestMultiplePermissions()
+        ) { permissions ->
+            // Handle permission result
+        }
+
         setContent {
             GrowCalthTheme {
-                LandingPage(db = db)
+                LandingPage(db = db, permissionLauncher = permissionLauncher)
             }
         }
     }
 }
+
 sealed class IconType {
     data class Vector(val imageVector: ImageVector) : IconType()
     data class Drawable(val painter: @Composable () -> Painter) : IconType()
@@ -93,7 +107,11 @@ enum class Destination(val label: String, val icon: IconType) {
 }
 
 @Composable
-fun LandingPage(db: FirebaseFirestore, modifier: Modifier = Modifier) {
+fun LandingPage(
+    db: FirebaseFirestore,
+    permissionLauncher: ActivityResultLauncher<Array<String>>,
+    modifier: Modifier = Modifier
+) {
     val startDestination = Destination.HOME
     var selectedDestination by rememberSaveable { mutableIntStateOf(startDestination.ordinal) }
     var showGoalDialog by remember { mutableStateOf(false) }
@@ -104,9 +122,9 @@ fun LandingPage(db: FirebaseFirestore, modifier: Modifier = Modifier) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surface)
+                    .background(Color.White) // Light mode background
                     .padding(horizontal = 20.dp, vertical = 16.dp)
-                    .padding(top = 40.dp) // Add more space from top
+                    .padding(top = 40.dp)
             ) {
                 Text(
                     text = when (selectedDestination) {
@@ -119,7 +137,7 @@ fun LandingPage(db: FirebaseFirestore, modifier: Modifier = Modifier) {
                     },
                     fontSize = 32.sp,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = Color(0xFF1A1A1A) // Dark text for light mode
                 )
 
                 if (selectedDestination == 0) {
@@ -127,13 +145,14 @@ fun LandingPage(db: FirebaseFirestore, modifier: Modifier = Modifier) {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                            containerColor = Color(0xFFF5F5F5) // Light gray card
                         ),
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(16.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                     ) {
                         Text(
                             text = "You are unable to earn GrowCalth points.",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = Color(0xFF666666),
                             fontSize = 15.sp,
                             modifier = Modifier.padding(20.dp)
                         )
@@ -147,26 +166,25 @@ fun LandingPage(db: FirebaseFirestore, modifier: Modifier = Modifier) {
                     .fillMaxWidth()
                     .padding(horizontal = 24.dp, vertical = 36.dp)
                     .shadow(
-                        elevation = 16.dp, // You can increase/decrease this for bigger shadow
-                        shape = RoundedCornerShape(40.dp), // Rounded corners for smooth shadow
-                        ambientColor = Color(0xFF2B2B2E),
-                        spotColor = Color(0xFF2B2B2E)
+                        elevation = 16.dp,
+                        shape = RoundedCornerShape(40.dp),
+                        ambientColor = Color.Black.copy(alpha = 0.15f),
+                        spotColor = Color.Black.copy(alpha = 0.15f)
                     )
             ) {
-                // Responsive navigation bar
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(75.dp) // Fixed height - shorter than before
+                        .height(75.dp)
                         .clip(RoundedCornerShape(32.dp))
                         .background(
-                            color = Color.White, // White border color
+                            color = Color.White,
                             shape = RoundedCornerShape(40.dp)
                         )
-                        .padding(2.dp) // 4 pixel white border
+                        .padding(2.dp)
                         .clip(RoundedCornerShape(30.dp))
                         .background(
-                            color = Color(0xFFF0F0F5), // Much lighter background
+                            color = Color(0xFFF8F9FA),
                             shape = RoundedCornerShape(36.dp)
                         )
                 ) {
@@ -190,13 +208,17 @@ fun LandingPage(db: FirebaseFirestore, modifier: Modifier = Modifier) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .background(Color.White) // Light mode background
                 .padding(contentPadding)
         ) {
             when (selectedDestination) {
-                0 -> HomeTab(onGoalClick = { showGoalDialog = true })
+                0 -> HomeTab(
+                    onGoalClick = { showGoalDialog = true },
+                    permissionLauncher = permissionLauncher
+                )
                 1 -> AnnouncementsTab()
                 2 -> ChallengesScreen()
-                3 -> NapfaTab(db = db) // Pass db parameter here
+                3 -> NapfaTab(db = db)
                 4 -> SettingsTab()
             }
         }
@@ -216,70 +238,62 @@ fun NavigationItem(
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp), // Slightly reduced spacing
+        verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier
             .clickable { onClick() }
-            .width(40.dp) // Slightly wider for better proportions
+            .width(40.dp)
             .padding(horizontal = 2.dp, vertical = 2.dp)
     ) {
-        // Icon with circular radial background for active tab
         Box(
             modifier = Modifier
-                .size(40.dp) // Container size
-                .aspectRatio(1f), // Keep it circular
+                .size(40.dp)
+                .aspectRatio(1f),
             contentAlignment = Alignment.Center
         ) {
-            // Radial background behind icon when selected
             if (isSelected) {
                 Box(
                     modifier = Modifier
                         .size(66.dp)
                         .padding(vertical = 5.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFFFFCDD2))
+                        .background(Color(0xFFE91E63).copy(alpha = 0.15f)) // Light pink background
                 )
             }
 
-            // Handle both Vector and Drawable icons
             when (destination.icon) {
                 is IconType.Vector -> {
                     Icon(
                         imageVector = destination.icon.imageVector,
                         contentDescription = destination.label,
-                    modifier = Modifier.size(60.dp)
-                        .padding(vertical = 5.dp),
-                    tint = if (isSelected) Color(0xFFE91E63) else Color(0xFF424242)
+                        modifier = Modifier.size(60.dp).padding(vertical = 5.dp),
+                        tint = if (isSelected) Color(0xFFE91E63) else Color(0xFF666666)
                     )
                 }
                 is IconType.Drawable -> {
                     Icon(
                         painter = destination.icon.painter(),
                         contentDescription = destination.label,
-                    modifier = Modifier.size(60.dp)
-                        .padding(vertical = 5.dp),
-                    tint = if (isSelected) Color(0xFFE91E63) else Color(0xFF424242)
+                        modifier = Modifier.size(60.dp).padding(vertical = 5.dp),
+                        tint = if (isSelected) Color(0xFFE91E63) else Color(0xFF666666)
                     )
                 }
             }
         }
 
-        // Label - slight overlap with radial background
         Text(
             text = destination.label,
             fontSize = 8.sp,
             fontWeight = FontWeight.Bold,
-            color = if (isSelected) Color(0xFFE91E63) else Color(0xFF000000),
+            color = if (isSelected) Color(0xFFE91E63) else Color(0xFF666666),
             textAlign = TextAlign.Center,
             maxLines = 1,
             modifier = Modifier
                 .fillMaxWidth()
                 .wrapContentHeight()
                 .offset(y = (-16).dp)
-
         )
     }
 }
-
 
 @Composable
 fun GoalDialog(onDismiss: () -> Unit) {
@@ -297,7 +311,7 @@ fun GoalDialog(onDismiss: () -> Unit) {
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
             shape = RoundedCornerShape(20.dp)
         ) {
             Column(
@@ -308,10 +322,9 @@ fun GoalDialog(onDismiss: () -> Unit) {
                     text = "Edit Goal",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = Color(0xFF1A1A1A)
                 )
 
-                // Steps Goal
                 GoalItem(
                     label = "Steps",
                     value = stepsGoal,
@@ -320,7 +333,6 @@ fun GoalDialog(onDismiss: () -> Unit) {
                     onIncrease = { stepsGoal += 100 }
                 )
 
-                // Distance Goal
                 GoalItem(
                     label = "Distance",
                     value = distanceGoal,
@@ -329,18 +341,17 @@ fun GoalDialog(onDismiss: () -> Unit) {
                     onIncrease = { distanceGoal += 100 }
                 )
 
-                // Save Button (non-functional)
                 Button(
                     onClick = onDismiss,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(48.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Accent),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE91E63)),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
                         text = "Save Goals",
-                        color = MaterialTheme.colorScheme.onPrimary,
+                        color = Color.White,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Medium
                     )
@@ -365,50 +376,51 @@ fun GoalItem(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Decrease button (far left)
         FilledTonalButton(
             onClick = { onDecrease() },
             modifier = Modifier.size(40.dp),
-            shape = androidx.compose.foundation.shape.CircleShape,
-            contentPadding = PaddingValues(0.dp)
+            shape = CircleShape,
+            contentPadding = PaddingValues(0.dp),
+            colors = ButtonDefaults.filledTonalButtonColors(
+                containerColor = Color(0xFFF5F5F5)
+            )
         ) {
             Text(
                 text = "−",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = Color(0xFF666666),
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold
             )
         }
 
-        // Label
         Text(
             text = label,
             fontSize = 16.sp,
             fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onSurface
+            color = Color(0xFF1A1A1A)
         )
 
-        // Value
         Text(
             text = value.toString(),
             fontSize = 16.sp,
             fontWeight = FontWeight.Normal,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = Color(0xFF666666)
         )
 
         Spacer(modifier = Modifier.weight(1f))
 
-        // Increase button (far right)
         FilledTonalButton(
             onClick = { onIncrease() },
             modifier = Modifier.size(40.dp),
-            shape = androidx.compose.foundation.shape.CircleShape,
+            shape = CircleShape,
             contentPadding = PaddingValues(0.dp),
-            colors = ButtonDefaults.filledTonalButtonColors(containerColor = Accent)
+            colors = ButtonDefaults.filledTonalButtonColors(
+                containerColor = Color(0xFFE91E63)
+            )
         ) {
             Text(
                 text = "+",
-                color = MaterialTheme.colorScheme.onPrimary,
+                color = Color.White,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -417,11 +429,33 @@ fun GoalItem(
 }
 
 @Composable
-fun HomeTab(onGoalClick: () -> Unit = {}) {
+fun HomeTab(
+    onGoalClick: () -> Unit = {},
+    permissionLauncher: ActivityResultLauncher<Array<String>>
+) {
+    val context = LocalContext.current
+    val healthViewModel: HealthDataViewModel = viewModel(factory = HealthDataViewModel.Factory(context))
+
+    // Observe health data
+    val steps by healthViewModel.steps.collectAsState()
+    val distance by healthViewModel.distance.collectAsState()
+    val hasPermissions by healthViewModel.hasPermissions.collectAsState()
+    val isLoading by healthViewModel.isLoading.collectAsState()
+
     var topHousePoints by remember { mutableStateOf<List<HousePoints>>(emptyList()) }
     var isLoadingLeaderboard by remember { mutableStateOf(true) }
 
-    // Load top 3 house points from Firebase
+    // Handle permission request
+    LaunchedEffect(Unit) {
+        if (!hasPermissions) {
+            val permissionsToRequest = healthViewModel.getPermissionStrings()
+            if (permissionsToRequest.isNotEmpty()) {
+                permissionLauncher.launch(permissionsToRequest)
+            }
+        }
+    }
+
+    // Load Firebase leaderboard data
     LaunchedEffect(Unit) {
         try {
             val db = FirebaseFirestore.getInstance()
@@ -455,29 +489,35 @@ fun HomeTab(onGoalClick: () -> Unit = {}) {
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .background(MaterialTheme.colorScheme.surface)
+            .background(Color.White)
             .padding(horizontal = 24.dp, vertical = 20.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-
+        // Health metrics row
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             HealthMetricCard(
-                value = "11,307",
+                value = if (hasPermissions) "${NumberFormat.getNumberInstance().format(steps)}" else "0",
                 unit = "steps",
-                remaining = "0 steps left",
-                progress = 1f,
-                modifier = Modifier.weight(1f)
+                remaining = "0 steps left", // You can calculate this based on your goals
+                progress = if (hasPermissions) (steps / 10000f).coerceAtMost(1f) else 0f,
+                modifier = Modifier.weight(1f),
+                isLoading = isLoading,
+                hasPermissions = hasPermissions,
+                onRetry = { healthViewModel.loadHealthData() }
             )
 
             HealthMetricCard(
-                value = "7.96",
+                value = if (hasPermissions) String.format("%.2f", distance / 1000) else "0.00",
                 unit = "km",
                 remaining = "0.00 km left",
-                progress = 0.8f,
-                modifier = Modifier.weight(1f)
+                progress = if (hasPermissions) ((distance / 1000) / 5f).coerceAtMost(1f) else 0f,
+                modifier = Modifier.weight(1f),
+                isLoading = isLoading,
+                hasPermissions = hasPermissions,
+                onRetry = { healthViewModel.loadHealthData() }
             )
         }
 
@@ -488,7 +528,7 @@ fun HomeTab(onGoalClick: () -> Unit = {}) {
             text = "Leaderboard",
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
+            color = Color(0xFF1A1A1A),
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
@@ -500,7 +540,7 @@ fun HomeTab(onGoalClick: () -> Unit = {}) {
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator(
-                    color = MaterialTheme.colorScheme.primary,
+                    color = Color(0xFFE91E63),
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -536,7 +576,7 @@ fun HomeTab(onGoalClick: () -> Unit = {}) {
         ) {
             Text(
                 text = "View more >",
-                color = Accent,
+                color = Color(0xFFE91E63),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium
             )
@@ -551,7 +591,7 @@ fun HomeTab(onGoalClick: () -> Unit = {}) {
                 .fillMaxWidth()
                 .height(64.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Accent
+                containerColor = Color(0xFFE91E63)
             ),
             shape = RoundedCornerShape(16.dp)
         ) {
@@ -561,7 +601,7 @@ fun HomeTab(onGoalClick: () -> Unit = {}) {
             ) {
                 Text(
                     text = "What's your next goal?",
-                    color = MaterialTheme.colorScheme.onPrimary,
+                    color = Color.White,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f)
@@ -569,7 +609,7 @@ fun HomeTab(onGoalClick: () -> Unit = {}) {
                 Icon(
                     imageVector = Icons.Default.Add,
                     contentDescription = "Add",
-                    tint = MaterialTheme.colorScheme.onPrimary,
+                    tint = Color.White,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -590,14 +630,18 @@ fun HealthMetricCard(
     unit: String,
     remaining: String,
     progress: Float,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isLoading: Boolean = false,
+    hasPermissions: Boolean = true,
+    onRetry: () -> Unit = {}
 ) {
     Card(
         modifier = modifier,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+            containerColor = Color(0xFFF8F9FA)
         ),
-        shape = RoundedCornerShape(20.dp)
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
@@ -607,79 +651,91 @@ fun HealthMetricCard(
                 modifier = Modifier.size(110.dp),
                 contentAlignment = Alignment.Center
             ) {
-                // Get colors outside of Canvas scope
-                val backgroundColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-                val progressColor = Accent
-
-                Canvas(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(4.dp) // Add equal padding on all sides
-                ) {
-                    val strokeWidth = 8.dp.toPx()
-
-                    // Now the canvas has equal padding, so we can use the full size
-                    val canvasSize = minOf(size.width, size.height)
-                    val radius = (canvasSize - strokeWidth) / 2f
-                    val center = Offset(size.width / 2f, size.height / 2f)
-
-                    // Calculate the bounding rectangle for the arc
-                    val arcSize = Size(canvasSize - strokeWidth, canvasSize - strokeWidth)
-                    val topLeft = Offset(
-                        center.x - radius,
-                        center.y - radius
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        color = Color(0xFFE91E63),
+                        strokeWidth = 3.dp,
+                        modifier = Modifier.size(40.dp)
                     )
+                } else if (!hasPermissions) {
+                    // Show refresh icon when no permissions
+                    IconButton(onClick = onRetry) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Retry",
+                            tint = Color(0xFF666666),
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+                } else {
+                    // Health data visualization
+                    val backgroundColor = Color(0xFFE0E0E0)
+                    val progressColor = Color(0xFFE91E63)
 
-                    // Background arc (full circle)
-                    drawArc(
-                        color = backgroundColor,
-                        startAngle = -90f,
-                        sweepAngle = 360f,
-                        useCenter = false,
-                        style = Stroke(width = strokeWidth, cap = StrokeCap.Round),
-                        size = arcSize,
-                        topLeft = topLeft
-                    )
+                    Canvas(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(4.dp)
+                    ) {
+                        val strokeWidth = 8.dp.toPx()
+                        val canvasSize = minOf(size.width, size.height)
+                        val radius = (canvasSize - strokeWidth) / 2f
+                        val center = Offset(size.width / 2f, size.height / 2f)
+                        val arcSize = Size(canvasSize - strokeWidth, canvasSize - strokeWidth)
+                        val topLeft = Offset(center.x - radius, center.y - radius)
 
-                    // Progress arc
-                    drawArc(
-                        color = progressColor,
-                        startAngle = -90f,
-                        sweepAngle = 360f * progress,
-                        useCenter = false,
-                        style = Stroke(width = strokeWidth, cap = StrokeCap.Round),
-                        size = arcSize,
-                        topLeft = topLeft
-                    )
+                        // Background arc
+                        drawArc(
+                            color = backgroundColor,
+                            startAngle = -90f,
+                            sweepAngle = 360f,
+                            useCenter = false,
+                            style = Stroke(width = strokeWidth, cap = StrokeCap.Round),
+                            size = arcSize,
+                            topLeft = topLeft
+                        )
+
+                        // Progress arc
+                        drawArc(
+                            color = progressColor,
+                            startAngle = -90f,
+                            sweepAngle = 360f * progress,
+                            useCenter = false,
+                            style = Stroke(width = strokeWidth, cap = StrokeCap.Round),
+                            size = arcSize,
+                            topLeft = topLeft
+                        )
+                    }
                 }
 
-                // Text content - this will be centered by the Box's contentAlignment
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = value,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center
-                    )
-                    Text(
-                        text = unit,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
-                        textAlign = TextAlign.Center
-                    )
+                if (!isLoading && hasPermissions) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = value,
+                            color = Color(0xFF1A1A1A),
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            text = unit,
+                            color = Color(0xFF666666),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = remaining,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                text = if (!hasPermissions) "Tap to connect" else remaining,
+                color = Color(0xFF666666),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
                 textAlign = TextAlign.Center
@@ -705,7 +761,7 @@ fun LeaderboardItem(
         Box(
             modifier = Modifier
                 .background(
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                    color = Color(0xFFF5F5F5),
                     shape = RoundedCornerShape(25.dp)
                 )
                 .padding(horizontal = 20.dp, vertical = 12.dp),
@@ -713,7 +769,7 @@ fun LeaderboardItem(
         ) {
             Text(
                 text = position,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = Color(0xFF666666),
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -724,7 +780,7 @@ fun LeaderboardItem(
             modifier = Modifier
                 .weight(1f)
                 .background(
-                    color = color.copy(alpha = 0.8f),
+                    color = color.copy(alpha = 0.9f),
                     shape = RoundedCornerShape(25.dp)
                 )
                 .padding(horizontal = 20.dp, vertical = 12.dp),
@@ -732,7 +788,7 @@ fun LeaderboardItem(
         ) {
             Text(
                 text = points,
-                color = MaterialTheme.colorScheme.onPrimary,
+                color = Color.White,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -748,11 +804,10 @@ private fun getHouseColor(color: String): Color {
         "green" -> Color(0xFF38A169)
         "yellow" -> Color(0xFFD69E2E)
         "black" -> Color(0xFF2D3748)
-        else -> Color(0xFF718096) // Default gray
+        else -> Color(0xFF718096)
     }
 }
 
-// Function to format exact points with comma separators
 private fun formatExactPoints(points: Long): String {
     return NumberFormat.getNumberInstance(Locale.getDefault()).format(points)
 }
