@@ -2,19 +2,15 @@ package com.example.growcalth
 
 import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
@@ -22,20 +18,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.growcalth.ui.theme.GrowCalthTheme
 import com.example.growcalth.ui.theme.Accent
-import com.example.growcalth.ui.theme.Surface
-import com.example.growcalth.ui.theme.OnSurface
-import com.example.growcalth.ui.theme.SurfaceVariant
-import com.example.growcalth.ui.theme.OnSurfaceVariant
+import com.example.growcalth.ui.theme.GrowCalthTheme
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 class SignUpActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -43,9 +35,7 @@ class SignUpActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             GrowCalthTheme {
-                Scaffold(
-                    modifier = Modifier.fillMaxSize()
-                ) { innerPadding ->
+                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     SignUpScreen(
                         modifier = Modifier
                             .padding(innerPadding)
@@ -61,12 +51,10 @@ class SignUpActivity : ComponentActivity() {
 @Composable
 fun SignUpScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
-    var schoolEmail by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var selectedHouse by remember { mutableStateOf("") }
-    var expanded by remember { mutableStateOf(false) }
+    var joinCode by remember { mutableStateOf("") }
 
-    val houseOptions = listOf("Red", "Green", "Blue", "Yellow", "Black")
+    val db = FirebaseFirestore.getInstance()
+    val coroutineScope = rememberCoroutineScope()
 
     Column(
         modifier = modifier
@@ -76,7 +64,7 @@ fun SignUpScreen(modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Circle behind icon
+        // Top Icon
         Box(
             modifier = Modifier
                 .size(120.dp)
@@ -122,47 +110,58 @@ fun SignUpScreen(modifier: Modifier = Modifier) {
 
         Spacer(modifier = Modifier.height(48.dp))
 
-        // Password field
+        // Join Code field
         OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            placeholder = { Text("Enter the code", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 16.sp) },
+            value = joinCode,
+            onValueChange = { joinCode = it },
+            placeholder = { Text("Enter the school code") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            visualTransformation = PasswordVisualTransformation(),
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Default.Lock,
-                    contentDescription = "Password Icon",
+                    contentDescription = "Code Icon",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             },
-            shape = RoundedCornerShape(28.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.outline,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                focusedContainerColor = MaterialTheme.colorScheme.surface,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surface
-            )
+            shape = RoundedCornerShape(28.dp)
         )
-        Spacer(modifier = Modifier.height(48.dp))
 
+        Spacer(modifier = Modifier.height(24.dp))
 
         // Create Account button
         Button(
             onClick = {
-                // Navigate to HouseActivity instead of MainActivity
-                val intent = Intent(context, HouseActivity::class.java)
-                context.startActivity(intent)
+                coroutineScope.launch {
+                    try {
+                        // 🔹 Find school with matching joinCode
+                        val schoolsSnapshot = db.collection("schools").get().await()
+                        val matchedSchool = schoolsSnapshot.documents.find { doc ->
+                            (doc.get("joinCode") as? String) == joinCode
+                        }
+
+                        if (matchedSchool != null) {
+                            val schoolName = matchedSchool.get("schoolName") as? String ?: "Unknown School"
+                            val schoolId = matchedSchool.id
+
+                            // 🔹 Navigate directly to HouseActivity
+                            val intent = Intent(context, HouseActivity::class.java)
+                            intent.putExtra("schoolId", schoolId)
+                            intent.putExtra("schoolName", schoolName)
+                            context.startActivity(intent)
+                        } else {
+                            Toast.makeText(context, "Code doesn't exist", Toast.LENGTH_SHORT).show()
+                        }
+                    } catch (e: Exception) {
+                        Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+                }
             },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
             shape = RoundedCornerShape(28.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Accent
-            )
+            colors = ButtonDefaults.buttonColors(containerColor = Accent)
         ) {
             Text(
                 "Create Account",
@@ -171,7 +170,5 @@ fun SignUpScreen(modifier: Modifier = Modifier) {
                 color = MaterialTheme.colorScheme.onPrimary
             )
         }
-
-        Spacer(modifier = Modifier.height(24.dp))
     }
 }

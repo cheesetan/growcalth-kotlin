@@ -8,7 +8,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.registerForActivityResult
+import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -33,13 +33,14 @@ import com.example.growcalth.ui.theme.GrowCalthTheme
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
-import com.google.firebase.Firebase
 import com.google.firebase.FirebaseApp
-import androidx.activity.result.ActivityResultLauncher
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.auth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.firestore
+import com.google.firebase.Firebase
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
@@ -181,8 +182,29 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             when (val result = authManager.signInWithGoogle(idToken)) {
                 is AuthResult.Success -> {
-                    showToast("Welcome ${result.user.displayName}")
-                    navigateToLandingPage()
+                    val user = result.user
+                    val db: FirebaseFirestore = Firebase.firestore
+
+                    // Check if user exists in Firestore by UID instead of email
+                    val snapshot = try {
+                        db.collection("users")
+                            .document(user.uid)
+                            .get()
+                            .await()
+                    } catch (e: Exception) {
+                        showToast("Error checking user: ${e.message}")
+                        return@launch
+                    }
+
+                    if (snapshot.exists()) {
+                        // User exists → navigate to landing page
+                        showToast("Welcome back!")
+                        navigateToLandingPage()
+                    } else {
+                        // User doesn't exist → navigate to signup
+                        showToast("Complete your sign-up")
+                        navigateToSignUp()
+                    }
                 }
                 is AuthResult.Error -> {
                     showToast(result.message)
@@ -190,6 +212,7 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
 
     private fun showToast(message: String, duration: Int = Toast.LENGTH_SHORT) {
         Toast.makeText(this, message, duration).show()
