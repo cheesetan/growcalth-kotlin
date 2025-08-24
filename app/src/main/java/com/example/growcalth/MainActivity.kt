@@ -8,40 +8,46 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.registerForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import com.example.growcalth.ui.theme.Accent
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.growcalth.ui.theme.GrowCalthTheme
-import com.example.growcalth.LandingPageActivity
-import com.example.growcalth.SignUpActivity
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 import androidx.lifecycle.lifecycleScope
-
-// Firebase imports
+import com.example.growcalth.ui.theme.Accent
+import com.example.growcalth.ui.theme.GrowCalthTheme
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
+import com.google.firebase.Firebase
 import com.google.firebase.FirebaseApp
+import androidx.activity.result.ActivityResultLauncher
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.auth
-import com.google.firebase.Firebase
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+
+// Firebase Authentication Results
+sealed class AuthResult {
+    data class Success(val user: FirebaseUser) : AuthResult()
+    data class Error(val message: String) : AuthResult()
+}
 
 // Firebase Authentication Manager
 class FirebaseAuthManager(private val context: Context) {
@@ -53,6 +59,7 @@ class FirebaseAuthManager(private val context: Context) {
         private const val KEY_IS_LOGGED_IN = "is_logged_in"
         private const val KEY_USER_EMAIL = "user_email"
         private const val KEY_USER_UID = "user_uid"
+        private const val KEY_USER_NAME = "user_name"
     }
 
     fun getCurrentUser(): FirebaseUser? = auth.currentUser
@@ -63,13 +70,12 @@ class FirebaseAuthManager(private val context: Context) {
         return firebaseLoggedIn && localLoggedIn
     }
 
-    fun getCurrentUserEmail(): String? = auth.currentUser?.email
-
     private fun saveLoginState(user: FirebaseUser) {
         sharedPrefs.edit().apply {
             putBoolean(KEY_IS_LOGGED_IN, true)
             putString(KEY_USER_EMAIL, user.email)
             putString(KEY_USER_UID, user.uid)
+            putString(KEY_USER_NAME, user.displayName)
             apply()
         }
     }
@@ -79,54 +85,51 @@ class FirebaseAuthManager(private val context: Context) {
         sharedPrefs.edit().clear().apply()
     }
 
-    suspend fun signInUser(email: String, password: String): AuthResult {
+    suspend fun signInWithGoogle(idToken: String): AuthResult {
         return try {
-            val result = auth.signInWithEmailAndPassword(email, password).await()
+            val credential = GoogleAuthProvider.getCredential(idToken, null)
+            val result = auth.signInWithCredential(credential).await()
             val user = result.user
-
             if (user != null) {
                 saveLoginState(user)
                 AuthResult.Success(user)
             } else {
-                AuthResult.Error("Authentication failed")
+                AuthResult.Error("Google sign-in failed")
             }
         } catch (e: Exception) {
-            when {
-                e.message?.contains("password") == true ||
-                        e.message?.contains("INVALID_LOGIN_CREDENTIALS") == true -> {
-                    AuthResult.Error("Invalid email or password")
-                }
-                e.message?.contains("network") == true -> {
-                    AuthResult.Error("Network error. Please check your connection")
-                }
-                e.message?.contains("too-many-requests") == true -> {
-                    AuthResult.Error("Too many failed attempts. Please try again later")
-                }
-                else -> {
-                    AuthResult.Error("Sign in failed: ${e.message ?: "Unknown error"}")
-                }
-            }
+            AuthResult.Error("Google sign-in error: ${e.message ?: "Unknown error"}")
         }
     }
 }
 
-// Firebase Authentication Results
-sealed class AuthResult {
-    data class Success(val user: FirebaseUser) : AuthResult()
-    data class Error(val message: String) : AuthResult()
-}
-
 class MainActivity : ComponentActivity() {
     private lateinit var authManager: FirebaseAuthManager
+    private lateinit var googleSignInLauncher: ActivityResultLauncher<Intent>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Initialize Firebase
+        // Initialize Google Sign-In launcher
+        googleSignInLauncher = registerForActivityResult(
+            ActivityResultContracts.StartActivityForResult()
+        ) { result ->
+            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+            try {
+                val account = task.getResult(ApiException::class.java)
+                val idToken = account?.idToken
+                if (idToken != null) {
+                    handleGoogleLogin(idToken)
+                } else {
+                    showToast("Google sign-in failed")
+                }
+            } catch (e: ApiException) {
+                showToast("Google sign-in failed: ${e.message}")
+            }
+        }
+
         FirebaseApp.initializeApp(this)
         authManager = FirebaseAuthManager(this)
 
-        // Check if user is already logged in
         if (authManager.isLoggedIn()) {
             navigateToLandingPage()
             return
@@ -139,16 +142,9 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = Color(0xFFFAFAFA)
                 ) {
-                    LoginScreen(
-                        authManager = authManager,
-                        modifier = Modifier.fillMaxSize(),
-                        onSignUpClick = {
-                            val intent = Intent(this, SignUpActivity::class.java)
-                            startActivity(intent)
-                        },
-                        onLoginSuccess = {
-                            navigateToLandingPage()
-                        }
+                    GoogleLoginScreen(
+                        onGoogleLoginClick = { launchGoogleSignIn() },
+                        onSignUpClick = { navigateToSignUp() }
                     )
                 }
             }
@@ -161,59 +157,57 @@ class MainActivity : ComponentActivity() {
         finish()
     }
 
-    private fun handleLogin(email: String, password: String) {
+    private fun navigateToSignUp() {
+        val intent = Intent(this, SignUpActivity::class.java)
+        startActivity(intent)
+    }
+
+    private fun launchGoogleSignIn() {
+        try {
+            val webClientId = getString(R.string.default_web_client_id)
+            val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestIdToken(webClientId)
+                .requestEmail()
+                .build()
+
+            val googleSignInClient = GoogleSignIn.getClient(this, gso)
+            googleSignInLauncher.launch(googleSignInClient.signInIntent)
+        } catch (e: Exception) {
+            showToast("Error: ${e.message}")
+        }
+    }
+
+    private fun handleGoogleLogin(idToken: String) {
         lifecycleScope.launch {
-            when (val result = authManager.signInUser(email, password)) {
+            when (val result = authManager.signInWithGoogle(idToken)) {
                 is AuthResult.Success -> {
-                    Toast.makeText(this@MainActivity, "Welcome back!", Toast.LENGTH_SHORT).show()
+                    showToast("Welcome ${result.user.displayName}")
                     navigateToLandingPage()
                 }
                 is AuthResult.Error -> {
-                    Toast.makeText(this@MainActivity, result.message, Toast.LENGTH_LONG).show()
+                    showToast(result.message)
                 }
             }
         }
+    }
+
+    private fun showToast(message: String, duration: Int = Toast.LENGTH_SHORT) {
+        Toast.makeText(this, message, duration).show()
     }
 }
 
 @Composable
-fun LoginScreen(
-    authManager: FirebaseAuthManager,
-    modifier: Modifier = Modifier,
-    onSignUpClick: () -> Unit,
-    onLoginSuccess: () -> Unit
+fun GoogleLoginScreen(
+    onGoogleLoginClick: () -> Unit,
+    onSignUpClick: () -> Unit
 ) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
-
-    fun handleLogin() {
-        if (email.isNotBlank() && password.isNotBlank()) {
-            isLoading = true
-            scope.launch {
-                when (val result = authManager.signInUser(email, password)) {
-                    is AuthResult.Success -> {
-                        Toast.makeText(context, "Welcome back!", Toast.LENGTH_SHORT).show()
-                        onLoginSuccess()
-                    }
-                    is AuthResult.Error -> {
-                        Toast.makeText(context, result.message, Toast.LENGTH_LONG).show()
-                    }
-                }
-                isLoading = false
-            }
-        } else {
-            Toast.makeText(context, "Please fill in all fields", Toast.LENGTH_SHORT).show()
-        }
-    }
 
     Column(
-        modifier = modifier
+        modifier = Modifier
+            .fillMaxSize()
             .background(Color(0xFFFAFAFA))
-            .padding(horizontal = 32.dp, vertical = 24.dp)
-            .fillMaxSize(),
+            .padding(horizontal = 32.dp, vertical = 24.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -265,96 +259,37 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(48.dp))
 
-        // Email field
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            placeholder = { Text("School Email", color = Color(0xFF757575), fontSize = 16.sp) },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-            shape = RoundedCornerShape(28.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color.Transparent,
-                unfocusedBorderColor = Color.Transparent,
-                focusedContainerColor = Color.White,
-                unfocusedContainerColor = Color.White
-            ),
-            enabled = !isLoading
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Password field
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            placeholder = { Text("Password", color = Color(0xFF757575), fontSize = 16.sp) },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            visualTransformation = PasswordVisualTransformation(),
-            shape = RoundedCornerShape(28.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color.Transparent,
-                unfocusedBorderColor = Color.Transparent,
-                focusedContainerColor = Color.White,
-                unfocusedContainerColor = Color.White
-            ),
-            enabled = !isLoading
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // Login button
+        // Google Login Button
         Button(
-            onClick = { handleLogin() },
+            onClick = onGoogleLoginClick,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
             shape = RoundedCornerShape(28.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = Accent
-            ),
-            enabled = !isLoading
-        ) {
-            if (isLoading) {
-                CircularProgressIndicator(
-                    color = Color.White,
-                    modifier = Modifier.size(24.dp),
-                    strokeWidth = 2.dp
-                )
-            } else {
-                Text(
-                    text = "Login",
-                    color = Color.White,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // Sign up text
-        Row(
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
+            )
         ) {
             Text(
-                text = "Don't have an account yet? ",
-                color = Color(0xFF757575),
-                fontSize = 16.sp
+                text = "Sign in with Google",
+                color = Color.White,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.SemiBold
             )
-            TextButton(
-                onClick = onSignUpClick,
-                colors = ButtonDefaults.textButtonColors(
-                    contentColor = Accent
-                ),
-                enabled = !isLoading
-            ) {
-                Text("Sign Up", fontSize = 16.sp, fontWeight = FontWeight.Medium)
-            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Sign Up Button
+        TextButton(
+            onClick = onSignUpClick,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text = "Don't have an account? Sign up",
+                color = Color(0xFF757575),
+                fontSize = 14.sp
+            )
         }
     }
 }

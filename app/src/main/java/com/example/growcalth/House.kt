@@ -1,20 +1,15 @@
 package com.example.growcalth
 
-import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
@@ -22,9 +17,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
@@ -32,12 +24,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.growcalth.ui.theme.GrowCalthTheme
 import com.example.growcalth.ui.theme.Accent
-import com.example.growcalth.ui.theme.Surface
-import com.example.growcalth.ui.theme.OnSurface
-import com.example.growcalth.ui.theme.SurfaceVariant
-import com.example.growcalth.ui.theme.OnSurfaceVariant
+import androidx.compose.ui.text.font.FontWeight
 
-class SignUpActivity : ComponentActivity() {
+class HouseActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -46,7 +35,7 @@ class SignUpActivity : ComponentActivity() {
                 Scaffold(
                     modifier = Modifier.fillMaxSize()
                 ) { innerPadding ->
-                    SignUpScreen(
+                    HouseSignUpScreen(
                         modifier = Modifier
                             .padding(innerPadding)
                             .fillMaxSize()
@@ -59,20 +48,16 @@ class SignUpActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SignUpScreen(modifier: Modifier = Modifier) {
-    val context = LocalContext.current
-    var schoolEmail by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
+fun HouseSignUpScreen(modifier: Modifier = Modifier) {
+
     var selectedHouse by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
-
-    val houseOptions = listOf("Red", "Green", "Blue", "Yellow", "Black")
+    val houseOptions = listOf("Red", "Blue", "Yellow", "Green")
 
     Column(
         modifier = modifier
             .background(MaterialTheme.colorScheme.background)
-            .padding(24.dp)
-            .fillMaxSize(),
+            .padding(24.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -120,41 +105,44 @@ fun SignUpScreen(modifier: Modifier = Modifier) {
             textAlign = TextAlign.Center
         )
 
-        Spacer(modifier = Modifier.height(48.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
-        // Password field
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            placeholder = { Text("Enter the code", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 16.sp) },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            visualTransformation = PasswordVisualTransformation(),
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Lock,
-                    contentDescription = "Password Icon",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            },
-            shape = RoundedCornerShape(28.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.outline,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                focusedContainerColor = MaterialTheme.colorScheme.surface,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surface
+
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = !expanded }
+        ) {
+            OutlinedTextField(
+                value = selectedHouse,
+                onValueChange = { selectedHouse = it },
+                readOnly = true,
+                label = { Text("House") },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(28.dp)
             )
-        )
-        Spacer(modifier = Modifier.height(48.dp))
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                houseOptions.forEach { house ->
+                    DropdownMenuItem(
+                        text = { Text(house) },
+                        onClick = {
+                            selectedHouse = house
+                            expanded = false
+                        }
+                    )
+                }
+            }
+        }
 
+        Spacer(modifier = Modifier.height(32.dp))
 
         // Create Account button
         Button(
             onClick = {
-                // Navigate to HouseActivity instead of MainActivity
-                val intent = Intent(context, HouseActivity::class.java)
-                context.startActivity(intent)
+                // TODO: Handle signup with email, password, and selectedHouse
             },
             modifier = Modifier
                 .fillMaxWidth()
@@ -167,11 +155,8 @@ fun SignUpScreen(modifier: Modifier = Modifier) {
             Text(
                 "Create Account",
                 fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onPrimary
             )
         }
-
-        Spacer(modifier = Modifier.height(24.dp))
     }
 }

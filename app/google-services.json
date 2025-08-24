@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "758127957931-at26dlp6gt83eumlco2heequdirlser2.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.android.growcalth",
+            "certificate_hash": "6172522eb6b56ce0dc98ad066ab1142f26931bd5"
+          }
+        },
+        {
           "client_id": "758127957931-qk6f1r7b6q0eecai0pdig8uddjddr9md.apps.googleusercontent.com",
           "client_type": 3
         }
@@ -50,6 +58,14 @@
         }
       },
       "oauth_client": [
+        {
+          "client_id": "758127957931-gguj69hj62filg2etlgo6900cbap2ior.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.growcalth",
+            "certificate_hash": "6172522eb6b56ce0dc98ad066ab1142f26931bd5"
+          }
+        },
         {
           "client_id": "758127957931-qk6f1r7b6q0eecai0pdig8uddjddr9md.apps.googleusercontent.com",
           "client_type": 3

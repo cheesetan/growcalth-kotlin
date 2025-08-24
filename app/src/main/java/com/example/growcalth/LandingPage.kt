@@ -513,8 +513,9 @@ fun HomeTab(
                 value = if (hasPermissions) String.format("%.2f", distance / 1000) else "0.00",
                 unit = "km",
                 remaining = "0.00 km left",
-                progress = if (hasPermissions) ((distance / 1000) / 5f).coerceAtMost(1f) else 0f,
-                modifier = Modifier.weight(1f),
+                progress = if (hasPermissions) {
+                    distance?.let { d -> (d.toFloat() / 1000f / 5f).coerceAtMost(1f) } ?: 0f
+                } else 0f,                modifier = Modifier.weight(1f),
                 isLoading = isLoading,
                 hasPermissions = hasPermissions,
                 onRetry = { healthViewModel.loadHealthData() }

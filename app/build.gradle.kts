@@ -57,19 +57,31 @@ dependencies {
     // Firebase dependencies
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.auth)
+    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
+    implementation("com.google.firebase:firebase-auth-ktx")
 
     // Auth dependencies
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services.auth)
     implementation(libs.googleid)
 
+    // Google Sign-In
+    implementation("com.google.android.gms:play-services-auth:20.7.0")
+
     // Health Connect dependencies - Updated to stable version
     implementation("androidx.health.connect:connect-client:1.1.0-alpha10")
 
     // Coroutines support (often needed for Health Connect)
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
+
     // Permission handling (useful for Health Connect permissions)
     implementation("androidx.activity:activity-compose:1.9.3")
+
+    // Lifecycle components
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.2")
+
 
     // Testing dependencies
     testImplementation(libs.junit)
