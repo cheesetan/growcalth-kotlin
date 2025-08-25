@@ -1,103 +1,112 @@
 package com.example.growcalth
 
 import android.content.Context
-import android.content.Intent
-import androidx.activity.result.contract.ActivityResultContract
+import android.util.Log
+import androidx.health.connect.client.HealthConnectClient
+import androidx.health.connect.client.permission.HealthPermission
+import androidx.health.connect.client.records.DistanceRecord
+import androidx.health.connect.client.records.StepsRecord
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import androidx.health.connect.client.HealthConnectClient
-import androidx.health.connect.client.permission.HealthPermission
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class HealthDataViewModel(private val context: Context) : ViewModel() {
+class HealthDataViewModel(private val manager: HealthDataManager) : ViewModel() {
 
-    private val healthConnectClient = HealthConnectClient.getOrCreate(context)
-    private val manager = HealthDataManager(healthConnectClient)
-
-    // StateFlow for steps
     private val _steps = MutableStateFlow(0L)
     val steps: StateFlow<Long> = _steps.asStateFlow()
 
-    // StateFlow for distance
     private val _distance = MutableStateFlow(0.0)
     val distance: StateFlow<Double> = _distance.asStateFlow()
 
-    // StateFlow for permissions
     private val _hasPermissions = MutableStateFlow(false)
     val hasPermissions: StateFlow<Boolean> = _hasPermissions.asStateFlow()
 
-    // StateFlow for loading state
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    private val _healthConnectAvailable = MutableStateFlow(true)
+    val healthConnectAvailable: StateFlow<Boolean> = _healthConnectAvailable.asStateFlow()
+
+    private val permissions = setOf(
+        HealthPermission.getReadPermission(StepsRecord::class),
+        HealthPermission.getReadPermission(DistanceRecord::class)
+    )
+
     init {
-        checkPermissionsAndLoadData()
-    }
-
-    fun loadHealthData() {
+        Log.d("HealthDataVM", "ViewModel init block started")
         viewModelScope.launch {
-            try {
-                _isLoading.value = true
-                val (stepsData, distanceData) = manager.readStepsAndDistance()
-                _steps.value = stepsData
-                _distance.value = distanceData
-            } catch (e: Exception) {
-                // Handle error
-            } finally {
-                _isLoading.value = false
-            }
-        }
-    }
+            Log.d("HealthDataVM", "Coroutine launched in init")
 
-    fun checkPermissionsAndLoadData() {
-        viewModelScope.launch {
             try {
-                _isLoading.value = true
-                val granted = healthConnectClient.permissionController.getGrantedPermissions()
-                val requiredPermissions: Set<String> = manager.permissions
-                _hasPermissions.value = granted.containsAll(requiredPermissions)
+                Log.d("HealthDataVM", "About to call manager.isHealthConnectAvailable()...")
+                _healthConnectAvailable.value = manager.isHealthConnectAvailable()
+                Log.d("HealthDataVM", "Health Connect available: ${_healthConnectAvailable.value}")
 
-                if (_hasPermissions.value) {
-                    loadHealthData()
+                if (_healthConnectAvailable.value) {
+                    Log.d("HealthDataVM", "Calling checkPermissionsAndLoad...")
+                    checkPermissionsAndLoad()
+                } else {
+                    Log.w("HealthDataVM", "Health Connect not available, skipping data load")
                 }
             } catch (e: Exception) {
-                _hasPermissions.value = false
+                Log.e("HealthDataVM", "Error in init coroutine", e)
+            }
+        }
+        Log.d("HealthDataVM", "ViewModel init block finished")
+    }
+
+    fun checkPermissionsAndLoad() {
+        Log.d("HealthDataVM", "checkPermissionsAndLoad() called")
+        viewModelScope.launch {
+            _isLoading.value = true
+            Log.d("HealthDataVM", "Loading started...")
+            try {
+                Log.d("HealthDataVM", "About to call manager.hasPermissions()...")
+                _hasPermissions.value = manager.hasPermissions()
+                Log.d("HealthDataVM", "Has permissions: ${_hasPermissions.value}")
+
+                if (_hasPermissions.value) {
+                    Log.d("HealthDataVM", "About to call manager.getStepsAndDistance()...")
+                    val (s, d) = manager.getStepsAndDistance()
+                    Log.d("HealthDataVM", "Data fetched - Steps: $s, Distance: $d")
+                    _steps.value = s
+                    _distance.value = d
+                } else {
+                    Log.d("HealthDataVM", "No permissions, setting to 0")
+                    _steps.value = 0L
+                    _distance.value = 0.0
+                }
+            } catch (t: Throwable) {
+                Log.e("HealthDataVM", "Data fetch failed", t)
             } finally {
                 _isLoading.value = false
+                Log.d("HealthDataVM", "Loading finished")
             }
         }
     }
 
-    suspend fun checkAndRequestPermissions(): Boolean {
-        return try {
-            val granted = healthConnectClient.permissionController.getGrantedPermissions()
-            val requiredPermissions: Set<String> = manager.permissions
-            val hasAllPermissions = granted.containsAll(requiredPermissions)
-
-            if (!hasAllPermissions) {
-                return false
-            }
-
-            hasAllPermissions
-        } catch (e: Exception) {
-            false
-        }
+    fun getPermissionStrings(): Array<String> {
+        Log.d("HealthDataVM", "getPermissionStrings() called")
+        return permissions.map { it.toString() }.toTypedArray()
     }
 
-    fun getPermissions(): Set<String> = manager.permissions
+    suspend fun hasAllPermissions(context: Context): Boolean {
+        val client = HealthConnectClient.getOrCreate(context)
+        val granted = client.permissionController.getGrantedPermissions()
+        return granted.containsAll(permissions)
+    }
 
-    fun getPermissionStrings(): Array<String> = manager.permissions.toTypedArray()
+    fun getPermissions() = permissions
 
-    // Factory for creating ViewModel with Context
     class Factory(private val context: Context) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             if (modelClass.isAssignableFrom(HealthDataViewModel::class.java)) {
-                return HealthDataViewModel(context) as T
+                return HealthDataViewModel(HealthDataManager(context)) as T
             }
             throw IllegalArgumentException("Unknown ViewModel class")
         }

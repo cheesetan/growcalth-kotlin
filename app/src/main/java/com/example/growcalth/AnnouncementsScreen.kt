@@ -74,10 +74,10 @@ fun AnnouncementsTab(
         ) {
             // Modern Capsule Segmented Control
             Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp), // Space between tabs
+                horizontalArrangement = Arrangement.spacedBy(30.dp), // Space between tabs
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
+                    .padding(horizontal = 0.dp)
             ) {
                 // Announcements Tab
                 Box(
@@ -115,7 +115,8 @@ fun AnnouncementsTab(
                             }
                         )
                         .clickable { selectedTab = 0 }
-                        .padding(vertical = 10.dp, horizontal = 16.dp),
+                        .height(36.dp)
+                        .padding(horizontal = 18.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -162,7 +163,8 @@ fun AnnouncementsTab(
                             }
                         )
                         .clickable { selectedTab = 1 }
-                        .padding(vertical = 10.dp, horizontal = 16.dp),
+                        .height(36.dp)
+                        .padding(horizontal = 18.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(

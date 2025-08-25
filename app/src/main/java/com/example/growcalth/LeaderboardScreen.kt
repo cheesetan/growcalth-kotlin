@@ -31,12 +31,6 @@ import kotlinx.coroutines.tasks.await
 import java.text.NumberFormat
 import java.util.*
 
-// Data class for House Points
-data class HousePoints(
-    val id: String = "",
-    val color: String = "",
-    val points: Long = 0L
-)
 
 class LeaderboardActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

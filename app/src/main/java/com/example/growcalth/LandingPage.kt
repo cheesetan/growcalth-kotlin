@@ -2,6 +2,7 @@ package com.example.growcalth
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -82,6 +83,10 @@ class LandingPageActivity : ComponentActivity() {
         permissionLauncher = registerForActivityResult(
             ActivityResultContracts.RequestMultiplePermissions()
         ) { permissions ->
+            Log.d("PermissionLauncher", "Permission result received: $permissions")
+            permissions.forEach { (permission, granted) ->
+                Log.d("PermissionLauncher", "Permission: $permission, Granted: $granted")
+            }
             // Handle permission result
         }
 
@@ -431,8 +436,23 @@ fun HomeTab(
     onGoalClick: () -> Unit = {},
     permissionLauncher: ActivityResultLauncher<Array<String>>
 ) {
+    Log.d("HomeTab", "HomeTab composable called")
     val context = LocalContext.current
+
     val healthViewModel: HealthDataViewModel = viewModel(factory = HealthDataViewModel.Factory(context))
+    Log.d("HomeTab", "ViewModel created successfully: $healthViewModel")
+
+    // Add a LaunchedEffect to test if ViewModel methods work
+    LaunchedEffect("viewmodel_test") {
+        Log.d("HomeTab", "LaunchedEffect started - testing ViewModel")
+        try {
+            Log.d("HomeTab", "Calling getPermissionStrings...")
+            val permissions = healthViewModel.getPermissionStrings()
+            Log.d("HomeTab", "Permissions: ${permissions.contentToString()}")
+        } catch (e: Exception) {
+            Log.e("HomeTab", "Error in LaunchedEffect", e)
+        }
+    }
 
     // Observe health data
     val steps by healthViewModel.steps.collectAsState()
@@ -444,17 +464,28 @@ fun HomeTab(
     var isLoadingLeaderboard by remember { mutableStateOf(true) }
 
     // Handle permission request
-    LaunchedEffect(Unit) {
+    LaunchedEffect("permissions") {
+        Log.d("HomeTab", "Permission LaunchedEffect started")
+        Log.d("HomeTab", "hasPermissions state: $hasPermissions")
+
         if (!hasPermissions) {
+            Log.d("HomeTab", "No permissions, requesting...")
             val permissionsToRequest = healthViewModel.getPermissionStrings()
+            Log.d("HomeTab", "Permissions to request: ${permissionsToRequest.contentToString()}")
+
             if (permissionsToRequest.isNotEmpty()) {
+                Log.d("HomeTab", "Launching permission request...")
                 permissionLauncher.launch(permissionsToRequest)
+            } else {
+                Log.w("HomeTab", "No permissions to request!")
             }
+        } else {
+            Log.d("HomeTab", "Already have permissions")
         }
     }
 
     // Load Firebase leaderboard data
-    LaunchedEffect(Unit) {
+    LaunchedEffect("leaderboard") {
         try {
             val db = FirebaseFirestore.getInstance()
             val result = db.collection("schools").document("sst").collection("leaderboard")
@@ -504,7 +535,7 @@ fun HomeTab(
                 modifier = Modifier.weight(1f),
                 isLoading = isLoading,
                 hasPermissions = hasPermissions,
-                onRetry = { healthViewModel.loadHealthData() }
+                onRetry = { healthViewModel.checkPermissionsAndLoad() }
             )
 
             HealthMetricCard(
@@ -515,7 +546,7 @@ fun HomeTab(
                 modifier = Modifier.weight(1f),
                 isLoading = isLoading,
                 hasPermissions = hasPermissions,
-                onRetry = { healthViewModel.loadHealthData() }
+                onRetry = { healthViewModel.checkPermissionsAndLoad() }
             )
         }
 
@@ -793,6 +824,12 @@ fun LeaderboardItem(
         }
     }
 }
+
+data class HousePoints(
+    val id: String,
+    val color: String,
+    val points: Long
+)
 
 // Helper functions
 private fun getHouseColor(color: String): Color {

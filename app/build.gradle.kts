@@ -69,7 +69,7 @@ dependencies {
     implementation("com.google.android.gms:play-services-auth:20.7.0")
 
     // Health Connect dependencies - Updated to stable version
-    implementation("androidx.health.connect:connect-client:1.1.0-alpha10")
+    implementation("androidx.health.connect:connect-client:1.1.0-alpha06")
 
     // Coroutines support (often needed for Health Connect)
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
