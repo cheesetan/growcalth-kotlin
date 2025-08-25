@@ -51,7 +51,7 @@ fun ChallengesScreen() {
 
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
+        color = Color(0xFFEBEBF2),
     ) {
         LazyColumn(
             modifier = Modifier

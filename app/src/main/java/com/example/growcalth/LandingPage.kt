@@ -105,7 +105,6 @@ enum class Destination(val label: String, val icon: IconType) {
     NAPFA("NAPFA", IconType.Drawable { painterResource(id = R.drawable.directions_run_24px) }),
     SETTINGS("Settings", IconType.Vector(Icons.Default.Settings)),
 }
-
 @Composable
 fun LandingPage(
     db: FirebaseFirestore,
@@ -122,14 +121,14 @@ fun LandingPage(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color.White) // Light mode background
+                    .background(Color(0xFFEBEBF2)) // Light mode background
                     .padding(horizontal = 20.dp, vertical = 16.dp)
-                    .padding(top = 40.dp)
+                    .padding(top = 40.dp),
             ) {
                 Text(
                     text = when (selectedDestination) {
                         0 -> "Home"
-                        1 -> "Updates"
+                        1 -> "Announcements"
                         2 -> "Challenges"
                         3 -> "NAPFA"
                         4 -> "Settings"
@@ -148,12 +147,13 @@ fun LandingPage(
                             containerColor = Color(0xFFF5F5F5) // Light gray card
                         ),
                         shape = RoundedCornerShape(16.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
                     ) {
                         Text(
                             text = "You are unable to earn GrowCalth points.",
                             color = Color(0xFF666666),
                             fontSize = 15.sp,
+                            textAlign = TextAlign.Center,
                             modifier = Modifier.padding(20.dp)
                         )
                     }
@@ -165,27 +165,28 @@ fun LandingPage(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 24.dp, vertical = 36.dp)
-                    .shadow(
-                        elevation = 16.dp,
-                        shape = RoundedCornerShape(40.dp),
-                        ambientColor = Color.Black.copy(alpha = 0.15f),
-                        spotColor = Color.Black.copy(alpha = 0.15f)
-                    )
+                    .background(Color(0xFFEBEBF2))
+
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(75.dp)
-                        .clip(RoundedCornerShape(32.dp))
+                        .height(85.dp)
+                        .shadow(
+                            elevation = 16.dp,
+                            shape = RoundedCornerShape(40.dp),
+                            ambientColor = Color(0xCC2B2B2E),
+                            spotColor = Color(0xCC2B2B2E),
+                        )
                         .background(
                             color = Color.White,
                             shape = RoundedCornerShape(40.dp)
                         )
                         .padding(2.dp)
-                        .clip(RoundedCornerShape(30.dp))
+                        .clip(RoundedCornerShape(38.dp))
                         .background(
                             color = Color(0xFFF8F9FA),
-                            shape = RoundedCornerShape(36.dp)
+                            shape = RoundedCornerShape(38.dp)
                         )
                 ) {
                     Row(
@@ -208,7 +209,7 @@ fun LandingPage(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.White) // Light mode background
+                .background(Color(0xFFEBEBF2)) // Light mode background
                 .padding(contentPadding)
         ) {
             when (selectedDestination) {
@@ -230,6 +231,7 @@ fun LandingPage(
     }
 }
 
+
 @Composable
 fun NavigationItem(
     destination: Destination,
@@ -238,25 +240,24 @@ fun NavigationItem(
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(-6.dp),
         modifier = Modifier
             .clickable { onClick() }
-            .width(40.dp)
+            .width(80.dp)
             .padding(horizontal = 2.dp, vertical = 2.dp)
     ) {
         Box(
             modifier = Modifier
-                .size(40.dp)
+                .size(48.dp)
                 .aspectRatio(1f),
             contentAlignment = Alignment.Center
         ) {
             if (isSelected) {
                 Box(
                     modifier = Modifier
-                        .size(66.dp)
-                        .padding(vertical = 5.dp)
+                        .size(60.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFFE91E63).copy(alpha = 0.15f)) // Light pink background
+                        .background(Color(0xFFE91E63).copy(alpha = 0.15f))
                 )
             }
 
@@ -265,7 +266,7 @@ fun NavigationItem(
                     Icon(
                         imageVector = destination.icon.imageVector,
                         contentDescription = destination.label,
-                        modifier = Modifier.size(60.dp).padding(vertical = 5.dp),
+                        modifier = Modifier.size(34.dp),
                         tint = if (isSelected) Color(0xFFE91E63) else Color(0xFF666666)
                     )
                 }
@@ -273,7 +274,7 @@ fun NavigationItem(
                     Icon(
                         painter = destination.icon.painter(),
                         contentDescription = destination.label,
-                        modifier = Modifier.size(60.dp).padding(vertical = 5.dp),
+                        modifier = Modifier.size(34.dp),
                         tint = if (isSelected) Color(0xFFE91E63) else Color(0xFF666666)
                     )
                 }
@@ -282,15 +283,12 @@ fun NavigationItem(
 
         Text(
             text = destination.label,
-            fontSize = 8.sp,
+            fontSize = 9.sp,
             fontWeight = FontWeight.Bold,
             color = if (isSelected) Color(0xFFE91E63) else Color(0xFF666666),
             textAlign = TextAlign.Center,
             maxLines = 1,
-            modifier = Modifier
-                .fillMaxWidth()
-                .wrapContentHeight()
-                .offset(y = (-16).dp)
+            modifier = Modifier.fillMaxWidth()
         )
     }
 }
@@ -489,7 +487,7 @@ fun HomeTab(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .background(Color.White)
+            .background(Color(0xFFEBEBF2))
             .padding(horizontal = 24.dp, vertical = 20.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -513,9 +511,8 @@ fun HomeTab(
                 value = if (hasPermissions) String.format("%.2f", distance / 1000) else "0.00",
                 unit = "km",
                 remaining = "0.00 km left",
-                progress = if (hasPermissions) {
-                    distance?.let { d -> (d.toFloat() / 1000f / 5f).coerceAtMost(1f) } ?: 0f
-                } else 0f,                modifier = Modifier.weight(1f),
+                progress = if (hasPermissions) ((distance.toFloat() / 1000) / 5f).coerceAtMost(1f) else 0f,
+                modifier = Modifier.weight(1f),
                 isLoading = isLoading,
                 hasPermissions = hasPermissions,
                 onRetry = { healthViewModel.loadHealthData() }

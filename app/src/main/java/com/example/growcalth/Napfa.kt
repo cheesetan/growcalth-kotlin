@@ -195,7 +195,7 @@ fun NapfaScreen(db: FirebaseFirestore) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White) // Light mode background
+            .background(Color(0xFFEBEBF2))
     ) {
         if (isLoading) {
             Box(

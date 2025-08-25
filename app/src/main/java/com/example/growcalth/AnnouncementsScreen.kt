@@ -16,6 +16,11 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.foundation.border
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -60,7 +65,7 @@ fun AnnouncementsTab(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White) // Light mode background
+            .background(Color(0xFFEBEBF2)) // Light mode background
     ) {
         Column(
             modifier = Modifier
@@ -69,31 +74,55 @@ fun AnnouncementsTab(
         ) {
             // Modern Capsule Segmented Control
             Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp), // Space between tabs
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(
-                        color = Color(0xFFF0F0F0),
-                        shape = RoundedCornerShape(50.dp) // Full capsule shape
-                    )
-                    .padding(4.dp)
+                    .padding(horizontal = 16.dp)
             ) {
                 // Announcements Tab
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .background(
-                            if (selectedTab == 0) Color.White else Color.Transparent,
-                            RoundedCornerShape(46.dp) // Inner capsule
+                        .then(
+                            if (selectedTab == 0) {
+                                Modifier
+                                    .shadow(
+                                        elevation = 4.dp,
+                                        shape = RoundedCornerShape(25.dp),
+                                        ambientColor = Color.Black.copy(alpha = 0.1f),
+                                        spotColor = Color.Black.copy(alpha = 0.15f)
+                                    )
+                                    .background(
+                                        Color.White,
+                                        RoundedCornerShape(25.dp)
+                                    )
+                                    .border(
+                                        width = 0.5.dp,
+                                        color = Color.Black.copy(alpha = 0.08f),
+                                        shape = RoundedCornerShape(25.dp)
+                                    )
+                            } else {
+                                Modifier
+                                    .background(
+                                        Color(0xFFF8F8F8),
+                                        RoundedCornerShape(25.dp)
+                                    )
+                                    .border(
+                                        width = 0.5.dp,
+                                        color = Color.Black.copy(alpha = 0.05f),
+                                        shape = RoundedCornerShape(25.dp)
+                                    )
+                            }
                         )
                         .clickable { selectedTab = 0 }
-                        .padding(vertical = 14.dp),
+                        .padding(vertical = 10.dp, horizontal = 16.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = "Announcements",
-                        fontSize = 14.sp,
-                        fontWeight = if (selectedTab == 0) FontWeight.SemiBold else FontWeight.Medium,
-                        color = if (selectedTab == 0) Color(0xFF1A1A1A) else Color(0xFF666666)
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold, // Always bold
+                        color = Color(0xFF2D2D2E)
                     )
                 }
 
@@ -101,19 +130,46 @@ fun AnnouncementsTab(
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .background(
-                            if (selectedTab == 1) Color.White else Color.Transparent,
-                            RoundedCornerShape(46.dp) // Inner capsule
+                        .then(
+                            if (selectedTab == 1) {
+                                Modifier
+                                    .shadow(
+                                        elevation = 4.dp,
+                                        shape = RoundedCornerShape(25.dp),
+                                        ambientColor = Color.Black.copy(alpha = 0.1f),
+                                        spotColor = Color.Black.copy(alpha = 0.15f)
+                                    )
+                                    .background(
+                                        Color.White,
+                                        RoundedCornerShape(25.dp)
+                                    )
+                                    .border(
+                                        width = 0.5.dp,
+                                        color = Color.Black.copy(alpha = 0.08f),
+                                        shape = RoundedCornerShape(25.dp)
+                                    )
+                            } else {
+                                Modifier
+                                    .background(
+                                        Color(0xFFF8F8F8),
+                                        RoundedCornerShape(25.dp)
+                                    )
+                                    .border(
+                                        width = 0.5.dp,
+                                        color = Color.Black.copy(alpha = 0.05f),
+                                        shape = RoundedCornerShape(25.dp)
+                                    )
+                            }
                         )
                         .clickable { selectedTab = 1 }
-                        .padding(vertical = 14.dp),
+                        .padding(vertical = 10.dp, horizontal = 16.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = "Events",
-                        fontSize = 14.sp,
-                        fontWeight = if (selectedTab == 1) FontWeight.SemiBold else FontWeight.Medium,
-                        color = if (selectedTab == 1) Color(0xFF1A1A1A) else Color(0xFF666666)
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold, // Always bold
+                        color = Color(0xFF2D2D2E)
                     )
                 }
             }
@@ -409,10 +465,10 @@ fun EventsContent(
                 try {
                     HouseEvent(
                         id = document.id,
-                        header = document.getString("header") ?: "",
-                        desc = document.getString("desc") ?: "",
-                        name = document.getString("name") ?: "",
-                        date = document.getString("date") ?: "",
+                        header = document.getString("title") ?: "",
+                        desc = document.getString("description") ?: "",
+                        name = "", // Keep as empty string since not in Firestore
+                        date = formatEventDate(document.getTimestamp("eventDate")?.toDate()), // Convert Date to String
                         venue = document.getString("venue") ?: "",
                         dateAdded = document.getTimestamp("dateAdded")?.toDate()
                     )
@@ -803,6 +859,13 @@ fun EventDetailView(
 
         Spacer(modifier = Modifier.height(100.dp))
     }
+}
+
+// Helper function to format event date (NEW)
+private fun formatEventDate(date: Date?): String {
+    if (date == null) return ""
+    val formatter = SimpleDateFormat("MMMM dd, yyyy 'at' h:mm a", Locale.getDefault())
+    return formatter.format(date)
 }
 
 // Helper function to format timestamp
