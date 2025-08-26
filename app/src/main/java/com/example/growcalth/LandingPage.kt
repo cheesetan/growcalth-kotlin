@@ -2,6 +2,7 @@ package com.example.growcalth
 
 import android.content.Intent
 import android.os.Bundle
+import android.net.Uri
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -70,6 +71,7 @@ import androidx.compose.ui.res.painterResource
 class LandingPageActivity : ComponentActivity() {
     private lateinit var db: FirebaseFirestore
     private lateinit var permissionLauncher: ActivityResultLauncher<Array<String>>
+    private var healthViewModel: HealthDataViewModel? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -79,20 +81,54 @@ class LandingPageActivity : ComponentActivity() {
         FirebaseApp.initializeApp(this)
         db = FirebaseFirestore.getInstance()
 
-        // Setup permission launcher
+        // Setup permission launcher with proper result handling
         permissionLauncher = registerForActivityResult(
             ActivityResultContracts.RequestMultiplePermissions()
         ) { permissions ->
             Log.d("PermissionLauncher", "Permission result received: $permissions")
-            permissions.forEach { (permission, granted) ->
-                Log.d("PermissionLauncher", "Permission: $permission, Granted: $granted")
+
+            val allGranted = permissions.values.all { it == true }
+            Log.d("PermissionLauncher", "All permissions granted: $allGranted")
+
+            if (allGranted) {
+                Log.d("PermissionLauncher", "All permissions granted, refreshing data...")
+                // Trigger data refresh in ViewModel
+                healthViewModel?.checkPermissionsAndLoad()
+            } else {
+                Log.w("PermissionLauncher", "Some permissions denied")
+                permissions.forEach { (permission, granted) ->
+                    Log.d("PermissionLauncher", "Permission: $permission, Granted: $granted")
+                    if (!granted) {
+                        // You could show a rationale dialog here for denied permissions
+                        showPermissionRationaleIfNeeded(permission)
+                    }
+                }
             }
-            // Handle permission result
         }
 
         setContent {
             GrowCalthTheme {
-                LandingPage(db = db, permissionLauncher = permissionLauncher)
+                LandingPage(
+                    db = db,
+                    permissionLauncher = permissionLauncher,
+                    onViewModelCreated = { viewModel ->
+                        healthViewModel = viewModel
+                    }
+                )
+            }
+        }
+    }
+
+    private fun showPermissionRationaleIfNeeded(permission: String) {
+        // Check if we should show rationale (user denied permission before)
+        when (permission) {
+            "android.permission.health.READ_STEPS" -> {
+                Log.d("PermissionLauncher", "Steps permission denied - could show rationale")
+                // You could show an AlertDialog explaining why steps permission is needed
+            }
+            "android.permission.health.READ_DISTANCE" -> {
+                Log.d("PermissionLauncher", "Distance permission denied - could show rationale")
+                // You could show an AlertDialog explaining why distance permission is needed
             }
         }
     }
@@ -114,6 +150,7 @@ enum class Destination(val label: String, val icon: IconType) {
 fun LandingPage(
     db: FirebaseFirestore,
     permissionLauncher: ActivityResultLauncher<Array<String>>,
+    onViewModelCreated: (HealthDataViewModel) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val startDestination = Destination.HOME
@@ -220,7 +257,8 @@ fun LandingPage(
             when (selectedDestination) {
                 0 -> HomeTab(
                     onGoalClick = { showGoalDialog = true },
-                    permissionLauncher = permissionLauncher
+                    permissionLauncher = permissionLauncher,
+                    onViewModelCreated = onViewModelCreated
                 )
                 1 -> AnnouncementsTab()
                 2 -> ChallengesScreen()
@@ -235,8 +273,6 @@ fun LandingPage(
         GoalDialog(onDismiss = { showGoalDialog = false })
     }
 }
-
-
 @Composable
 fun NavigationItem(
     destination: Destination,
@@ -434,7 +470,8 @@ fun GoalItem(
 @Composable
 fun HomeTab(
     onGoalClick: () -> Unit = {},
-    permissionLauncher: ActivityResultLauncher<Array<String>>
+    permissionLauncher: ActivityResultLauncher<Array<String>>,
+    onViewModelCreated: (HealthDataViewModel) -> Unit = {}
 ) {
     Log.d("HomeTab", "HomeTab composable called")
     val context = LocalContext.current
@@ -442,30 +479,37 @@ fun HomeTab(
     val healthViewModel: HealthDataViewModel = viewModel(factory = HealthDataViewModel.Factory(context))
     Log.d("HomeTab", "ViewModel created successfully: $healthViewModel")
 
-    // Add a LaunchedEffect to test if ViewModel methods work
-    LaunchedEffect("viewmodel_test") {
-        Log.d("HomeTab", "LaunchedEffect started - testing ViewModel")
-        try {
-            Log.d("HomeTab", "Calling getPermissionStrings...")
-            val permissions = healthViewModel.getPermissionStrings()
-            Log.d("HomeTab", "Permissions: ${permissions.contentToString()}")
-        } catch (e: Exception) {
-            Log.e("HomeTab", "Error in LaunchedEffect", e)
-        }
+    // Notify activity of ViewModel creation
+    LaunchedEffect("viewmodel_created") {
+        onViewModelCreated(healthViewModel)
     }
 
-    // Observe health data
     val steps by healthViewModel.steps.collectAsState()
     val distance by healthViewModel.distance.collectAsState()
     val hasPermissions by healthViewModel.hasPermissions.collectAsState()
     val isLoading by healthViewModel.isLoading.collectAsState()
+    var isRequestingPermissions by remember { mutableStateOf(false) }
+    val healthConnectAvailable by healthViewModel.healthConnectAvailable.collectAsState()
+    Log.d("HomeTab", "HealthConnectAvailable Value: $healthConnectAvailable")
 
     var topHousePoints by remember { mutableStateOf<List<HousePoints>>(emptyList()) }
     var isLoadingLeaderboard by remember { mutableStateOf(true) }
+    var showHealthConnectDialog by remember { mutableStateOf(false) }
 
-    // Handle permission request
-    LaunchedEffect("permissions") {
-        Log.d("HomeTab", "Permission LaunchedEffect started")
+    // SINGLE LaunchedEffect for permission handling
+    LaunchedEffect("permission_flow") {
+        Log.d("HomeTab", "Starting unified permission flow...")
+
+        // Wait a bit for ViewModel to fully initialize
+        kotlinx.coroutines.delay(200)
+
+        if (!healthConnectAvailable) {
+            Log.w("HomeTab", "Health Connect not available")
+            showHealthConnectDialog = true
+            return@LaunchedEffect
+        }
+
+        Log.d("HomeTab", "Health Connect available, checking permissions...")
         Log.d("HomeTab", "hasPermissions state: $hasPermissions")
 
         if (!hasPermissions) {
@@ -474,13 +518,23 @@ fun HomeTab(
             Log.d("HomeTab", "Permissions to request: ${permissionsToRequest.contentToString()}")
 
             if (permissionsToRequest.isNotEmpty()) {
-                Log.d("HomeTab", "Launching permission request...")
+                isRequestingPermissions = true
+                Log.d("HomeTab", "Launching single permission request...")
                 permissionLauncher.launch(permissionsToRequest)
-            } else {
-                Log.w("HomeTab", "No permissions to request!")
             }
         } else {
-            Log.d("HomeTab", "Already have permissions")
+            Log.d("HomeTab", "Already have permissions, loading data...")
+            healthViewModel.checkPermissionsAndLoad()
+        }
+    }
+
+    // Reload data when permissions are granted (triggered by permission result)
+    LaunchedEffect(hasPermissions) {
+        isRequestingPermissions = false
+        if (hasPermissions && healthConnectAvailable) {
+            Log.d("HomeTab", "Permissions granted, reloading data...")
+            kotlinx.coroutines.delay(100) // Small delay to ensure state is updated
+            healthViewModel.checkPermissionsAndLoad()
         }
     }
 
@@ -514,6 +568,38 @@ fun HomeTab(
         }
     }
 
+    // Health Connect installation dialog
+    if (showHealthConnectDialog) {
+        AlertDialog(
+            onDismissRequest = { showHealthConnectDialog = false },
+            title = { Text("Health Connect Required") },
+            text = {
+                Text("This app requires Health Connect to track your fitness data. Please install Health Connect from the Play Store and set it up.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        try {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=com.google.android.apps.healthdata"))
+                            context.startActivity(intent)
+                        } catch (e: Exception) {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=com.google.android.apps.healthdata"))
+                            context.startActivity(intent)
+                        }
+                        showHealthConnectDialog = false
+                    }
+                ) {
+                    Text("Install")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showHealthConnectDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -528,25 +614,45 @@ fun HomeTab(
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             HealthMetricCard(
-                value = if (hasPermissions) "${NumberFormat.getNumberInstance().format(steps)}" else "0",
+                value = if (hasPermissions && healthConnectAvailable) "${NumberFormat.getNumberInstance().format(steps)}" else "0",
                 unit = "steps",
-                remaining = "0 steps left", // You can calculate this based on your goals
-                progress = if (hasPermissions) (steps / 10000f).coerceAtMost(1f) else 0f,
+                remaining = when {
+                    !healthConnectAvailable -> "Health Connect needed"
+                    !hasPermissions -> "Tap to grant permission"
+                    else -> "0 steps left"
+                },
+                progress = if (hasPermissions && healthConnectAvailable) (steps / 10000f).coerceAtMost(1f) else 0f,
                 modifier = Modifier.weight(1f),
-                isLoading = isLoading,
-                hasPermissions = hasPermissions,
-                onRetry = { healthViewModel.checkPermissionsAndLoad() }
+                isLoading = isLoading && healthConnectAvailable,
+                hasPermissions = hasPermissions && healthConnectAvailable,
+                onRetry = {
+                    when {
+                        !healthConnectAvailable -> showHealthConnectDialog = true
+                        !hasPermissions -> permissionLauncher.launch(healthViewModel.getPermissionStrings())
+                        else -> healthViewModel.checkPermissionsAndLoad()
+                    }
+                }
             )
 
             HealthMetricCard(
-                value = if (hasPermissions) String.format("%.2f", distance / 1000) else "0.00",
+                value = if (hasPermissions && healthConnectAvailable) String.format("%.2f", distance / 1000) else "0.00",
                 unit = "km",
-                remaining = "0.00 km left",
-                progress = if (hasPermissions) ((distance.toFloat() / 1000) / 5f).coerceAtMost(1f) else 0f,
+                remaining = when {
+                    !healthConnectAvailable -> "Health Connect needed"
+                    !hasPermissions -> "Tap to grant permission"
+                    else -> "0.00 km left"
+                },
+                progress = if (hasPermissions && healthConnectAvailable) ((distance.toFloat() / 1000) / 5f).coerceAtMost(1f) else 0f,
                 modifier = Modifier.weight(1f),
-                isLoading = isLoading,
-                hasPermissions = hasPermissions,
-                onRetry = { healthViewModel.checkPermissionsAndLoad() }
+                isLoading = isLoading && healthConnectAvailable,
+                hasPermissions = hasPermissions && healthConnectAvailable,
+                onRetry = {
+                    when {
+                        !healthConnectAvailable -> showHealthConnectDialog = true
+                        !hasPermissions -> permissionLauncher.launch(healthViewModel.getPermissionStrings())
+                        else -> healthViewModel.checkPermissionsAndLoad()
+                    }
+                }
             )
         }
 
@@ -596,7 +702,6 @@ fun HomeTab(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        val context = LocalContext.current
         TextButton(
             onClick = {
                 context.startActivity(Intent(context, LeaderboardActivity::class.java))

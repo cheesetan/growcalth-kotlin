@@ -27,12 +27,15 @@ class HealthDataManager(private val context: Context) {
         HealthPermission.getReadPermission(DistanceRecord::class)
     )
 
+
     /**
      * Check whether Health Connect is actually available on this device.
      * If this returns false, do NOT call other APIs (they can crash).
      */
     fun isHealthConnectAvailable(): Boolean {
         Log.d("HealthDataManager", "isHealthConnectAvailable() called")
+        Log.d("HealthDataManager", "SDK_AVAILABLE constant: ${HealthConnectClient.SDK_AVAILABLE}")
+        Log.d("HealthDataManager", "SDK_UNAVAILABLE: ${HealthConnectClient.SDK_UNAVAILABLE}")
         val status = HealthConnectClient.getSdkStatus(context)
         Log.d("HealthDataManager", "SDK Status: $status")
         val available = status == HealthConnectClient.SDK_AVAILABLE
@@ -64,6 +67,12 @@ class HealthDataManager(private val context: Context) {
             Log.d("HealthDataManager", "getGrantedPermissions() completed")
             Log.d("HealthDataManager", "Granted permissions: $granted")
             Log.d("HealthDataManager", "Required permissions: $permissions")
+
+            // Check each permission individually
+            permissions.forEach { permission ->
+                val isGranted = granted.contains(permission)
+                Log.d("HealthDataManager", "Permission $permission: granted=$isGranted")
+            }
 
             val hasAll = granted.containsAll(permissions)
             Log.d("HealthDataManager", "Has all permissions: $hasAll")
