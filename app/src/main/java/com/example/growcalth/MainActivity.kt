@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -11,6 +12,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,8 +25,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
@@ -110,26 +116,30 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // Initialize Firebase first
+        FirebaseApp.initializeApp(this)
+        authManager = FirebaseAuthManager(this)
+
         // Initialize Google Sign-In launcher
         googleSignInLauncher = registerForActivityResult(
             ActivityResultContracts.StartActivityForResult()
         ) { result ->
+            Log.d("MainActivity", "Google Sign-In result received")
             val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
             try {
                 val account = task.getResult(ApiException::class.java)
                 val idToken = account?.idToken
+                Log.d("MainActivity", "ID Token received: ${idToken != null}")
                 if (idToken != null) {
                     handleGoogleLogin(idToken)
                 } else {
-                    showToast("Google sign-in failed")
+                    showToast("Google sign-in failed: No ID token")
                 }
             } catch (e: ApiException) {
-                showToast("Google sign-in failed: ${e.message}")
+                Log.e("MainActivity", "Google sign-in failed", e)
+                showToast("Google sign-in failed: ${e.statusCode}")
             }
         }
-
-        FirebaseApp.initializeApp(this)
-        authManager = FirebaseAuthManager(this)
 
         if (authManager.isLoggedIn()) {
             navigateToLandingPage()
@@ -141,7 +151,7 @@ class MainActivity : ComponentActivity() {
             GrowCalthTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = Color(0xFFFAFAFA)
+                    color = Color(0xFFEBEBF2)
                 ) {
                     GoogleLoginScreen(
                         onGoogleLoginClick = { launchGoogleSignIn() },
@@ -165,56 +175,73 @@ class MainActivity : ComponentActivity() {
 
     private fun launchGoogleSignIn() {
         try {
+            // Use the web client ID from your Firebase project
             val webClientId = getString(R.string.default_web_client_id)
+            Log.d("MainActivity", "Web Client ID: $webClientId")
+
             val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestIdToken(webClientId)
                 .requestEmail()
+                .requestProfile()
                 .build()
 
             val googleSignInClient = GoogleSignIn.getClient(this, gso)
-            googleSignInLauncher.launch(googleSignInClient.signInIntent)
+
+            // Sign out first to ensure account picker shows
+            googleSignInClient.signOut().addOnCompleteListener {
+                val signInIntent = googleSignInClient.signInIntent
+                googleSignInLauncher.launch(signInIntent)
+            }
+
         } catch (e: Exception) {
+            Log.e("MainActivity", "Error launching Google Sign-In", e)
             showToast("Error: ${e.message}")
         }
     }
 
     private fun handleGoogleLogin(idToken: String) {
         lifecycleScope.launch {
-            when (val result = authManager.signInWithGoogle(idToken)) {
-                is AuthResult.Success -> {
-                    val user = result.user
-                    val db: FirebaseFirestore = Firebase.firestore
+            try {
+                when (val result = authManager.signInWithGoogle(idToken)) {
+                    is AuthResult.Success -> {
+                        val user = result.user
+                        val db: FirebaseFirestore = Firebase.firestore
 
-                    // Check if user exists in Firestore by UID instead of email
-                    val snapshot = try {
-                        db.collection("users")
-                            .document(user.uid)
-                            .get()
-                            .await()
-                    } catch (e: Exception) {
-                        showToast("Error checking user: ${e.message}")
-                        return@launch
+                        // Check if user exists in Firestore by UID
+                        val snapshot = try {
+                            db.collection("users")
+                                .document(user.uid)
+                                .get()
+                                .await()
+                        } catch (e: Exception) {
+                            Log.e("MainActivity", "Error checking user in Firestore", e)
+                            showToast("Error checking user: ${e.message}")
+                            return@launch
+                        }
+
+                        if (snapshot.exists()) {
+                            // User exists → navigate to landing page
+                            showToast("Welcome back!")
+                            navigateToLandingPage()
+                        } else {
+                            // User doesn't exist → navigate to signup
+                            showToast("Complete your sign-up")
+                            navigateToSignUp()
+                        }
                     }
-
-                    if (snapshot.exists()) {
-                        // User exists → navigate to landing page
-                        showToast("Welcome back!")
-                        navigateToLandingPage()
-                    } else {
-                        // User doesn't exist → navigate to signup
-                        showToast("Complete your sign-up")
-                        navigateToSignUp()
+                    is AuthResult.Error -> {
+                        Log.e("MainActivity", "Google sign-in error: ${result.message}")
+                        showToast(result.message)
                     }
                 }
-                is AuthResult.Error -> {
-                    showToast(result.message)
-                }
+            } catch (e: Exception) {
+                Log.e("MainActivity", "Unexpected error during Google login", e)
+                showToast("Unexpected error: ${e.message}")
             }
         }
     }
 
-
-    private fun showToast(message: String, duration: Int = Toast.LENGTH_SHORT) {
+    private fun showToast(message: String, duration: Int = Toast.LENGTH_LONG) {
         Toast.makeText(this, message, duration).show()
     }
 }
@@ -224,12 +251,10 @@ fun GoogleLoginScreen(
     onGoogleLoginClick: () -> Unit,
     onSignUpClick: () -> Unit
 ) {
-    val context = LocalContext.current
-
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFFAFAFA))
+            .background(Color(0xFFEBEBF2))
             .padding(horizontal = 32.dp, vertical = 24.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -303,15 +328,23 @@ fun GoogleLoginScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Sign Up Button
-        TextButton(
-            onClick = onSignUpClick,
-            modifier = Modifier.fillMaxWidth()
+        // Fixed Sign Up Text - only "Sign up" is clickable
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "Don't have an account? Sign up",
+                text = "Don't have an account? ",
                 color = Color(0xFF757575),
                 fontSize = 14.sp
+            )
+            Text(
+                text = "Sign up",
+                color = Accent,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                textDecoration = TextDecoration.Underline,
+                modifier = Modifier.clickable { onSignUpClick() }
             )
         }
     }

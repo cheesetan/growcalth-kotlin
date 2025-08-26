@@ -72,108 +72,100 @@ fun AnnouncementsTab(
                 .fillMaxSize()
                 .padding(horizontal = 16.dp)
         ) {
+            Spacer(modifier = Modifier.height(20.dp))
             // Modern Capsule Segmented Control
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(30.dp), // Space between tabs
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 0.dp)
-            ) {
-                // Announcements Tab
-                Box(
+            if (selectedAnnouncement == null && selectedEvent == null) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(30.dp),
                     modifier = Modifier
-                        .weight(1f)
-                        .then(
-                            if (selectedTab == 0) {
-                                Modifier
-                                    .shadow(
-                                        elevation = 4.dp,
-                                        shape = RoundedCornerShape(25.dp),
-                                        ambientColor = Color.Black.copy(alpha = 0.1f),
-                                        spotColor = Color.Black.copy(alpha = 0.15f)
-                                    )
-                                    .background(
-                                        Color.White,
-                                        RoundedCornerShape(25.dp)
-                                    )
-                                    .border(
-                                        width = 0.5.dp,
-                                        color = Color.Black.copy(alpha = 0.08f),
-                                        shape = RoundedCornerShape(25.dp)
-                                    )
-                            } else {
-                                Modifier
-                                    .background(
-                                        Color(0xFFF8F8F8),
-                                        RoundedCornerShape(25.dp)
-                                    )
-                                    .border(
-                                        width = 0.5.dp,
-                                        color = Color.Black.copy(alpha = 0.05f),
-                                        shape = RoundedCornerShape(25.dp)
-                                    )
-                            }
-                        )
-                        .clickable { selectedTab = 0 }
-                        .height(36.dp)
-                        .padding(horizontal = 18.dp),
-                    contentAlignment = Alignment.Center
+                        .fillMaxWidth()
+                        .padding(horizontal = 0.dp)
                 ) {
-                    Text(
-                        text = "Announcements",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold, // Always bold
-                        color = Color(0xFF2D2D2E)
-                    )
-                }
+                    // Announcements Tab
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .then(
+                                if (selectedTab == 0) {
+                                    Modifier
+                                        .shadow(
+                                            elevation = 4.dp,
+                                            shape = RoundedCornerShape(25.dp),
+                                            ambientColor = Color.Black.copy(alpha = 0.1f),
+                                            spotColor = Color.Black.copy(alpha = 0.15f)
+                                        )
+                                        .background(Color.White, RoundedCornerShape(25.dp))
+                                        .border(
+                                            width = 0.5.dp,
+                                            color = Color.Black.copy(alpha = 0.08f),
+                                            shape = RoundedCornerShape(25.dp)
+                                        )
+                                } else {
+                                    Modifier
+                                        .background(Color(0xFFF8F8F8), RoundedCornerShape(25.dp))
+                                        .border(
+                                            width = 0.5.dp,
+                                            color = Color.Black.copy(alpha = 0.05f),
+                                            shape = RoundedCornerShape(25.dp)
+                                        )
+                                }
+                            )
+                            .clickable { selectedTab = 0 }
+                            .height(36.dp)
+                            .padding(horizontal = 18.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Announcements",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF2D2D2E)
+                        )
+                    }
 
-                // Events Tab
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .then(
-                            if (selectedTab == 1) {
-                                Modifier
-                                    .shadow(
-                                        elevation = 4.dp,
-                                        shape = RoundedCornerShape(25.dp),
-                                        ambientColor = Color.Black.copy(alpha = 0.1f),
-                                        spotColor = Color.Black.copy(alpha = 0.15f)
-                                    )
-                                    .background(
-                                        Color.White,
-                                        RoundedCornerShape(25.dp)
-                                    )
-                                    .border(
-                                        width = 0.5.dp,
-                                        color = Color.Black.copy(alpha = 0.08f),
-                                        shape = RoundedCornerShape(25.dp)
-                                    )
-                            } else {
-                                Modifier
-                                    .background(
-                                        Color(0xFFF8F8F8),
-                                        RoundedCornerShape(25.dp)
-                                    )
-                                    .border(
-                                        width = 0.5.dp,
-                                        color = Color.Black.copy(alpha = 0.05f),
-                                        shape = RoundedCornerShape(25.dp)
-                                    )
-                            }
+                    // Events Tab
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .then(
+                                if (selectedTab == 1) {
+                                    Modifier
+                                        .shadow(
+                                            elevation = 4.dp,
+                                            shape = RoundedCornerShape(25.dp),
+                                            ambientColor = Color.Black.copy(alpha = 0.1f),
+                                            spotColor = Color.Black.copy(alpha = 0.15f)
+                                        )
+                                        .background(Color.White, RoundedCornerShape(25.dp))
+                                        .border(
+                                            width = 0.5.dp,
+                                            color = Color.Black.copy(alpha = 0.08f),
+                                            shape = RoundedCornerShape(25.dp)
+                                        )
+                                } else {
+                                    Modifier
+                                        .background(Color(0xFFF8F8F8), RoundedCornerShape(25.dp))
+                                        .border(
+                                            width = 0.5.dp,
+                                            color = Color.Black.copy(alpha = 0.05f),
+                                            shape = RoundedCornerShape(25.dp)
+                                        )
+                                }
+                            )
+                            .clickable { selectedTab = 1 }
+                            .height(36.dp)
+                            .padding(horizontal = 18.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Events",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF2D2D2E)
                         )
-                        .clickable { selectedTab = 1 }
-                        .height(36.dp)
-                        .padding(horizontal = 18.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Events",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold, // Always bold
-                        color = Color(0xFF2D2D2E)
-                    )
+                    }
                 }
+                Spacer(modifier = Modifier.height(20.dp))
             }
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -373,7 +365,7 @@ fun ModernAnnouncementCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onCardClick() },
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFDCDCE5)),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         shape = RoundedCornerShape(16.dp)
     ) {
@@ -591,7 +583,7 @@ fun ModernEventCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onCardClick() },
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFDCDCE5)),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         shape = RoundedCornerShape(16.dp)
     ) {
@@ -707,7 +699,7 @@ fun AnnouncementDetailView(
             Spacer(modifier = Modifier.width(8.dp))
 
             Text(
-                text = "Announcement",
+                text = announcement.header,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFF1A1A1A)
@@ -717,23 +709,13 @@ fun AnnouncementDetailView(
         // Content card
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFEBEBF2)),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
             shape = RoundedCornerShape(16.dp)
         ) {
             Column(
                 modifier = Modifier.padding(20.dp)
             ) {
-                Text(
-                    text = announcement.header,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1A1A1A),
-                    lineHeight = 26.sp
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
                 Text(
                     text = announcement.text,
                     fontSize = 16.sp,
@@ -777,7 +759,7 @@ fun EventDetailView(
             Spacer(modifier = Modifier.width(8.dp))
 
             Text(
-                text = "Event Details",
+                text = event.header,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFF1A1A1A)
@@ -786,23 +768,13 @@ fun EventDetailView(
 
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFEBEBF2)),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
             shape = RoundedCornerShape(16.dp)
         ) {
             Column(
                 modifier = Modifier.padding(20.dp)
             ) {
-                Text(
-                    text = event.header,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1A1A1A),
-                    lineHeight = 26.sp
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
                 if (event.date.isNotEmpty()) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
@@ -843,7 +815,7 @@ fun EventDetailView(
 
                 if (event.desc.isNotEmpty()) {
                     Text(
-                        text = "Description",
+                        text = "Description:",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF1A1A1A)

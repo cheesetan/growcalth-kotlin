@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -19,6 +20,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -30,7 +34,6 @@ import com.google.firebase.firestore.Query
 import kotlinx.coroutines.tasks.await
 import java.text.NumberFormat
 import java.util.*
-
 
 class LeaderboardActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -92,7 +95,8 @@ fun LeaderboardScreen(onBackClick: () -> Unit) {
             modifier = Modifier
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.surface)
-                .padding(16.dp),
+                .padding(horizontal = 5.dp, vertical = 16.dp)
+                .padding(top = 40.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onBackClick) {
@@ -204,14 +208,21 @@ fun LeaderboardContent(housePoints: List<HousePoints>) {
         // Trophy icon
         Box(
             modifier = Modifier
-                .padding(vertical = 32.dp)
-                .size(80.dp)
-                .background(getHouseColor(housePoints.firstOrNull()?.color ?: ""), shape = RoundedCornerShape(20.dp)),
+                .padding(top = 32.dp, bottom = 12.dp)
+                .size(120.dp) // Slightly bigger for better prominence
+                .background(
+                    brush = Brush.radialGradient(
+                        colors = listOf(Color(0xAADBB363), Color.Transparent),
+                        center = Offset(180f, 180f),
+                        radius = 150f // adjust as needed
+                    ),
+                    shape = CircleShape
+                ),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text = "🏆",
-                fontSize = 40.sp,
+                fontSize = 50.sp,
                 textAlign = TextAlign.Center
             )
         }
@@ -225,33 +236,30 @@ fun LeaderboardContent(housePoints: List<HousePoints>) {
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.Bottom
             ) {
-                // 3rd place
                 PodiumColumn(
                     position = 3,
-                    height = 120.dp,
+                    height = 180.dp,
                     color = getHouseColor(housePoints[2].color),
                     points = formatExactPoints(housePoints[2].points),
-                    emoji = getHouseEmoji(housePoints[2].color)
+                    houseColor = housePoints[2].color
                 )
                 Spacer(modifier = Modifier.width(12.dp))
 
-                // 1st place
                 PodiumColumn(
                     position = 1,
-                    height = 180.dp,
+                    height = 240.dp,
                     color = getHouseColor(housePoints[0].color),
                     points = formatExactPoints(housePoints[0].points),
-                    emoji = getHouseEmoji(housePoints[0].color)
+                    houseColor = housePoints[0].color
                 )
                 Spacer(modifier = Modifier.width(12.dp))
 
-                // 2nd place
                 PodiumColumn(
                     position = 2,
-                    height = 150.dp,
+                    height = 210.dp,
                     color = getHouseColor(housePoints[1].color),
                     points = formatExactPoints(housePoints[1].points),
-                    emoji = getHouseEmoji(housePoints[1].color)
+                    houseColor = housePoints[1].color
                 )
             }
         }
@@ -269,56 +277,15 @@ fun LeaderboardContent(housePoints: List<HousePoints>) {
                     LeaderboardRankItem(
                         position = "${getOrdinal(position)}",
                         points = "${formatExactPoints(house.points)} POINTS",
-                        emoji = getHouseEmoji(house.color),
+                        houseColor = house.color,
                         backgroundColor = getHouseColor(house.color)
                     )
                 }
             }
-        } else if (housePoints.size == 2) {
-            // Handle case with only 2 houses
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 32.dp),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.Bottom
-            ) {
-                // 1st place
-                PodiumColumn(
-                    position = 1,
-                    height = 180.dp,
-                    color = getHouseColor(housePoints[0].color),
-                    points = formatExactPoints(housePoints[0].points),
-                    emoji = getHouseEmoji(housePoints[0].color)
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-
-                // 2nd place
-                PodiumColumn(
-                    position = 2,
-                    height = 150.dp,
-                    color = getHouseColor(housePoints[1].color),
-                    points = formatExactPoints(housePoints[1].points),
-                    emoji = getHouseEmoji(housePoints[1].color)
-                )
-            }
-        } else if (housePoints.size == 1) {
-            // Handle case with only 1 house
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.padding(vertical = 32.dp)
-            ) {
-                PodiumColumn(
-                    position = 1,
-                    height = 180.dp,
-                    color = getHouseColor(housePoints[0].color),
-                    points = formatExactPoints(housePoints[0].points),
-                    emoji = getHouseEmoji(housePoints[0].color)
-                )
-            }
         }
     }
 }
+
 
 @Composable
 fun PodiumColumn(
@@ -326,18 +293,16 @@ fun PodiumColumn(
     height: androidx.compose.ui.unit.Dp,
     color: Color,
     points: String,
-    emoji: String
+    houseColor: String
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.width(90.dp)
     ) {
-        // Podium column with content
         Box(
             modifier = Modifier
-                .width(90.dp)
-                .height(height)
-                .clip(RoundedCornerShape(12.dp))
+                .width(120.dp)
+                .height(height + 40.dp)
                 .background(color),
             contentAlignment = Alignment.Center
         ) {
@@ -345,7 +310,6 @@ fun PodiumColumn(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                // Circle with emoji
                 Box(
                     modifier = Modifier
                         .size(48.dp)
@@ -353,16 +317,23 @@ fun PodiumColumn(
                         .background(MaterialTheme.colorScheme.surface),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = emoji,
-                        fontSize = 24.sp,
-                        textAlign = TextAlign.Center
-                    )
+                    val drawableId = getHouseDrawableId(houseColor)
+                    if (drawableId != null) {
+                        Image(
+                            painter = painterResource(id = drawableId),
+                            contentDescription = "${houseColor} house icon",
+                            modifier = Modifier.size(48.dp),
+                        )
+                    } else {
+                        Text(
+                            text = getHouseEmoji(houseColor),
+                            fontSize = 24.sp
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Points text
                 Text(
                     text = points,
                     color = MaterialTheme.colorScheme.onPrimary,
@@ -380,7 +351,7 @@ fun PodiumColumn(
 fun LeaderboardRankItem(
     position: String,
     points: String,
-    emoji: String,
+    houseColor: String,
     backgroundColor: Color
 ) {
     Row(
@@ -390,7 +361,6 @@ fun LeaderboardRankItem(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Position pill
         Box(
             modifier = Modifier
                 .background(
@@ -408,7 +378,6 @@ fun LeaderboardRankItem(
             )
         }
 
-        // Points pill with emoji
         Box(
             modifier = Modifier
                 .weight(1f)
@@ -431,7 +400,19 @@ fun LeaderboardRankItem(
                         .background(MaterialTheme.colorScheme.surface),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(text = emoji, fontSize = 20.sp, textAlign = TextAlign.Center)
+                    val drawableId = getHouseDrawableId(houseColor)
+                    if (drawableId != null) {
+                        Image(
+                            painter = painterResource(id = drawableId),
+                            contentDescription = "${houseColor} house icon",
+                            modifier = Modifier.size(40.dp),
+                        )
+                    } else {
+                        Text(
+                            text = getHouseEmoji(houseColor),
+                            fontSize = 18.sp
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.weight(1f))
@@ -455,22 +436,38 @@ private fun getHouseColor(color: String): Color {
         "green" -> Color(0xFF38A169)
         "yellow" -> Color(0xFFD69E2E)
         "black" -> Color(0xFF2D3748)
-        else -> Color(0xFF718096) // Default gray
+        else -> Color(0xFF718096)
     }
 }
 
+// Safely get .png drawable ID, returns null if missing
+private fun getHouseDrawableId(color: String): Int? {
+    return try {
+        when (color.lowercase()) {
+            "red" -> R.drawable.red
+            "blue" -> R.drawable.blue
+            "green" -> R.drawable.green
+            "yellow" -> R.drawable.yellow
+            "black" -> R.drawable.black
+            else -> null
+        }
+    } catch (e: Exception) {
+        null
+    }
+}
+
+// Emoji fallback if no PNG exists
 private fun getHouseEmoji(color: String): String {
     return when (color.lowercase()) {
-        "red" -> "🔥"
-        "blue" -> "🌊"
-        "green" -> "🌿"
-        "yellow" -> "⚡"
-        "black" -> "🖤"
-        else -> "🏠"
+        "red" -> "🔴"
+        "blue" -> "🔵"
+        "green" -> "🟢"
+        "yellow" -> "🟡"
+        "black" -> "⚫"
+        else -> "❔"
     }
 }
 
-// New function to format exact points with comma separators
 private fun formatExactPoints(points: Long): String {
     return NumberFormat.getNumberInstance(Locale.getDefault()).format(points)
 }
