@@ -1,5 +1,6 @@
 package com.example.growcalth
 
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -22,10 +23,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import com.example.growcalth.ui.theme.GrowCalthTheme
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.text.style.TextAlign
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 
 data class UserProfile(
     val name: String = "",
@@ -47,10 +53,18 @@ class AccountActivity : ComponentActivity() {
         setContent {
             GrowCalthTheme {
                 AccountScreen(
-                    onBackClick = { finish() }
+                    onBackClick = { finish() },
+                    onDeleteSuccess = { navigateToMainActivity() }
                 )
             }
         }
+    }
+
+    private fun navigateToMainActivity() {
+        val intent = Intent(this, MainActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        startActivity(intent)
+        finish()
     }
 }
 
@@ -86,12 +100,15 @@ fun AppTopBar(
 
 @Composable
 fun AccountScreen(
-    onBackClick: () -> Unit = {}
+    onBackClick: () -> Unit = {},
+    onDeleteSuccess: () -> Unit = {}
 ) {
     val context = LocalContext.current
     var userProfile by remember { mutableStateOf<UserProfile?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var isDeleting by remember { mutableStateOf(false) }
 
     // Load user data from Firebase
     LaunchedEffect(Unit) {
@@ -194,13 +211,45 @@ fun AccountScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable {
-                                // TODO: Show delete account confirmation dialog
+                                showDeleteDialog = true
                             }
                             .padding(vertical = 16.dp)
                     )
                 }
             }
         }
+    }
+
+    if (showDeleteDialog) {
+        val coroutineScope = rememberCoroutineScope() // Add this line
+
+        DeleteAccountDialog(
+            isDeleting = isDeleting,
+            onConfirm = {
+                isDeleting = true
+                // Use the proper coroutine scope
+                coroutineScope.launch {
+                    deleteAccount(
+                        onSuccess = {
+                            isDeleting = false
+                            showDeleteDialog = false
+                            onDeleteSuccess()
+                        },
+                        onError = { error ->
+                            isDeleting = false
+                            showDeleteDialog = false
+                            errorMessage = error
+                            Log.e("AccountScreen", "Error deleting account: $error")
+                        }
+                    )
+                }
+            },
+            onDismiss = {
+                if (!isDeleting) {
+                    showDeleteDialog = false
+                }
+            }
+        )
     }
 }
 
@@ -410,5 +459,133 @@ private fun determineAccountType(email: String): String {
         email.contains("@staff.") -> "Staff"
         email.contains("@teacher.") -> "Teacher"
         else -> "User"
+    }
+}
+
+@Composable
+fun DeleteAccountDialog(
+    isDeleting: Boolean,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    Dialog(onDismissRequest = { if (!isDeleting) onDismiss() }) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White)
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Delete Account",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = "Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently removed.",
+                    fontSize = 16.sp,
+                    color = Color.Gray,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 22.sp
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                if (isDeleting) {
+                    CircularProgressIndicator(
+                        color = Color.Red,
+                        modifier = Modifier.size(32.dp)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Deleting account...",
+                        fontSize = 14.sp,
+                        color = Color.Gray
+                    )
+                } else {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Button(
+                            onClick = onDismiss,
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.Gray.copy(alpha = 0.2f),
+                                contentColor = Color.Gray
+                            ),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text(
+                                text = "Cancel",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+
+                        Button(
+                            onClick = onConfirm,
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.Red,
+                                contentColor = Color.White
+                            ),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text(
+                                text = "Delete",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Function to delete user account and data from Firebase
+suspend fun deleteAccount(
+    onSuccess: () -> Unit,
+    onError: (String) -> Unit
+) {
+    try {
+        val auth = FirebaseAuth.getInstance()
+        val currentUser = auth.currentUser
+
+        if (currentUser == null) {
+            onError("User not logged in")
+            return
+        }
+
+        val db = FirebaseFirestore.getInstance()
+        val userId = currentUser.uid
+
+        try {
+            // Delete user data from Firestore
+            db.collection("users")
+                .document(userId)
+                .delete()
+                .await()
+
+            // Delete the user authentication account
+            currentUser.delete().await()
+
+            onSuccess()
+        } catch (e: Exception) {
+            onError("Failed to delete account: ${e.message}")
+        }
+    } catch (e: Exception) {
+        onError("Failed to delete account: ${e.message}")
     }
 }
