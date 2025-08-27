@@ -29,6 +29,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalDensity
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import kotlinx.coroutines.tasks.await
@@ -71,7 +76,7 @@ fun AnnouncementsTab(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = 26.dp)
         ) {
             Spacer(modifier = Modifier.height(20.dp))
             // Modern Capsule Segmented Control
@@ -334,6 +339,7 @@ fun AnnouncementsContent(
                         title = announcement.header,
                         content = announcement.text,
                         timestamp = formatTimestamp(announcement.dateAdded),
+                        isFirst = index == 0,
                         onCardClick = {
                             onAnnouncementClick(
                                 announcement.header,
@@ -360,13 +366,24 @@ fun ModernAnnouncementCard(
     title: String,
     content: String,
     timestamp: String,
+    isFirst: Boolean = false,
     onCardClick: () -> Unit = {}
 ) {
+    val backgroundColor = if (isFirst) Color(0xFFE7E7EF) else Color(0xFFDCDCE5)
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(vertical = 5.dp, horizontal = 5.dp)
+            .customCardShadow(
+                dropShadowColor = Color(0xFF4F4F52).copy(alpha = 0.25f),
+                dropShadowBlur = 25.dp,
+                innerShadowColor = Color(0xFFF4F4F6).copy(alpha = 0.9f),
+                innerShadowBlur = 65.dp
+            )
+            .border(1.dp, Color.White, RoundedCornerShape(16.dp))
             .clickable { onCardClick() },
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFDCDCE5)),
+        colors = CardDefaults.cardColors(containerColor = backgroundColor),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         shape = RoundedCornerShape(16.dp)
     ) {
@@ -555,6 +572,7 @@ fun EventsContent(
                         date = event.date,
                         venue = event.venue,
                         timestamp = formatTimestamp(event.dateAdded),
+                        isFirst = index == 0,
                         onCardClick = {
                             onEventClick(event.header, event.desc, event.date, event.venue)
                         }
@@ -578,13 +596,24 @@ fun ModernEventCard(
     date: String,
     venue: String,
     timestamp: String,
+    isFirst: Boolean = false,
     onCardClick: () -> Unit = {}
 ) {
+    val backgroundColor = if (isFirst) Color(0xFFE7E7EF) else Color(0xFFDCDCE5)
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(vertical = 5.dp, horizontal = 5.dp)
+            .customCardShadow(
+                dropShadowColor = Color(0xFF4F4F52).copy(alpha = 0.25f),
+                dropShadowBlur = 25.dp,
+                innerShadowColor = Color(0xFFF4F4F6).copy(alpha = 0.8f),
+                innerShadowBlur = 35.dp
+            )
+            .border(1.dp, Color.White, RoundedCornerShape(16.dp))
             .clickable { onCardClick() },
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFDCDCE5)),
+        colors = CardDefaults.cardColors(containerColor = backgroundColor),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         shape = RoundedCornerShape(16.dp)
     ) {
@@ -668,6 +697,31 @@ fun ModernEventCard(
         }
     }
 }
+
+// Custom shadow modifier for cards
+fun Modifier.customCardShadow(
+    dropShadowColor: Color,
+    dropShadowBlur: androidx.compose.ui.unit.Dp,
+    innerShadowColor: Color,
+    innerShadowBlur: androidx.compose.ui.unit.Dp
+) = this.then(
+    drawWithContent {
+        drawContent()
+
+        // Draw inner shadow effect using a simplified approach
+        drawRoundRect(
+            color = innerShadowColor,
+            size = size,
+            cornerRadius = CornerRadius(16.dp.toPx()),
+            blendMode = BlendMode.Multiply
+        )
+    }.shadow(
+        elevation = dropShadowBlur / 2, // Approximate the blur effect
+        shape = RoundedCornerShape(16.dp),
+        ambientColor = dropShadowColor,
+        spotColor = dropShadowColor
+    )
+)
 
 @Composable
 fun AnnouncementDetailView(
