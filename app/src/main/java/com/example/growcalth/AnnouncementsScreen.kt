@@ -54,6 +54,7 @@ data class HouseEvent(
     val dateAdded: Date? = null
 )
 
+
 @Composable
 fun AnnouncementsTab(
     onAnnouncementClick: (String, String, String) -> Unit = { _, _, _ -> }

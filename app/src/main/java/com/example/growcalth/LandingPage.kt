@@ -165,7 +165,7 @@ fun LandingPage(
                     .fillMaxWidth()
                     .background(Color(0xFFEBEBF2)) // Light mode background
                     .padding(horizontal = 20.dp, vertical = 16.dp)
-                    .padding(top = 40.dp),
+                    .padding(top = 20.dp),
             ) {
                 Text(
                     text = when (selectedDestination) {
@@ -206,29 +206,28 @@ fun LandingPage(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 36.dp)
+                    .padding(horizontal = 24.dp, vertical = 20.dp) // Reduced from 36dp to 20dp
                     .background(Color(0xFFEBEBF2))
-
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(85.dp)
+                        .height(65.dp) // Reduced from 85.dp to 65.dp
                         .shadow(
                             elevation = 16.dp,
-                            shape = RoundedCornerShape(40.dp),
+                            shape = RoundedCornerShape(32.dp), // Adjusted corner radius
                             ambientColor = Color(0xCC2B2B2E),
                             spotColor = Color(0xCC2B2B2E),
                         )
                         .background(
                             color = Color.White,
-                            shape = RoundedCornerShape(40.dp)
+                            shape = RoundedCornerShape(32.dp)
                         )
                         .padding(2.dp)
-                        .clip(RoundedCornerShape(38.dp))
+                        .clip(RoundedCornerShape(30.dp))
                         .background(
                             color = Color(0xFFF8F9FA),
-                            shape = RoundedCornerShape(38.dp)
+                            shape = RoundedCornerShape(30.dp)
                         )
                 ) {
                     Row(
@@ -466,6 +465,11 @@ fun GoalItem(
         }
     }
 }
+suspend fun getUserSchoolCode(uid: String): String? {
+    val db = FirebaseFirestore.getInstance()
+    val snapshot = db.collection("users").document(uid).get().await()
+    return snapshot.getString("schoolCode")
+}
 
 @Composable
 fun HomeTab(
@@ -492,6 +496,10 @@ fun HomeTab(
     val healthConnectAvailable by healthViewModel.healthConnectAvailable.collectAsState()
     Log.d("HomeTab", "HealthConnectAvailable Value: $healthConnectAvailable")
 
+    // --- NEW: schoolCode state ---
+    var schoolCode by remember { mutableStateOf<String?>(null) }
+
+    // Leaderboard states
     var topHousePoints by remember { mutableStateOf<List<HousePoints>>(emptyList()) }
     var isLoadingLeaderboard by remember { mutableStateOf(true) }
     var showHealthConnectDialog by remember { mutableStateOf(false) }
@@ -500,8 +508,7 @@ fun HomeTab(
     LaunchedEffect("permission_flow") {
         Log.d("HomeTab", "Starting unified permission flow...")
 
-        // Wait a bit for ViewModel to fully initialize
-        kotlinx.coroutines.delay(200)
+        kotlinx.coroutines.delay(200) // Wait for ViewModel init
 
         if (!healthConnectAvailable) {
             Log.w("HomeTab", "Health Connect not available")
@@ -528,43 +535,58 @@ fun HomeTab(
         }
     }
 
-    // Reload data when permissions are granted (triggered by permission result)
+    // Reload data when permissions are granted
     LaunchedEffect(hasPermissions) {
         isRequestingPermissions = false
         if (hasPermissions && healthConnectAvailable) {
             Log.d("HomeTab", "Permissions granted, reloading data...")
-            kotlinx.coroutines.delay(100) // Small delay to ensure state is updated
+            kotlinx.coroutines.delay(100)
             healthViewModel.checkPermissionsAndLoad()
         }
     }
 
-    // Load Firebase leaderboard data
-    LaunchedEffect("leaderboard") {
-        try {
-            val db = FirebaseFirestore.getInstance()
-            val result = db.collection("schools").document("sst").collection("leaderboard")
-                .orderBy("points", Query.Direction.DESCENDING)
-                .limit(3)
-                .get()
-                .await()
+    // --- NEW: Fetch schoolCode from Firestore ---
+    LaunchedEffect(Unit) {
+        val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+        if (uid != null) {
+            try {
+                schoolCode = getUserSchoolCode(uid)
+                Log.d("HomeTab", "Fetched schoolCode: $schoolCode")
+            } catch (e: Exception) {
+                Log.e("HomeTab", "Error fetching schoolCode", e)
+            }
+        }
+    }
 
-            val fetchedHousePoints = result.documents.mapNotNull { document ->
-                try {
+    // --- Load leaderboard only after schoolCode is available ---
+    LaunchedEffect(schoolCode) {
+        if (schoolCode != null) {
+            try {
+                val db = FirebaseFirestore.getInstance()
+                val result = db.collection("schools")
+                    .document(schoolCode!!) // dynamic instead of hardcoded
+                    .collection("leaderboard")
+                    .orderBy("points", Query.Direction.DESCENDING)
+                    .limit(3)
+                    .get()
+                    .await()
+
+                val fetchedHousePoints = result.documents.mapNotNull { document ->
                     HousePoints(
                         id = document.id,
-                        color = document.getString("name") ?: "",
+                        color = document.getString("color") ?: "",
+                        name = document.getString("name") ?: "",
                         points = document.getLong("points") ?: 0L
                     )
-                } catch (e: Exception) {
-                    null
                 }
+
+                topHousePoints = fetchedHousePoints
+                Log.d("HomeTab", "Fetched leaderboard: $fetchedHousePoints")
+            } catch (e: Exception) {
+                Log.e("HomeTab", "Failed to fetch leaderboard", e)
+            } finally {
+                isLoadingLeaderboard = false
             }
-
-            topHousePoints = fetchedHousePoints
-            isLoadingLeaderboard = false
-
-        } catch (e: Exception) {
-            isLoadingLeaderboard = false
         }
     }
 
@@ -930,7 +952,7 @@ fun LeaderboardItem(
     }
 }
 
-data class HousePoints(
+data class HousePoints2(
     val id: String,
     val color: String,
     val points: Long

@@ -47,6 +47,14 @@ class LeaderboardActivity : ComponentActivity() {
     }
 }
 
+// Updated HousePoints data class to match Firebase structure
+data class HousePoints(
+    val id: String,
+    val name: String,
+    val color: String,
+    val points: Long
+)
+
 @Composable
 fun LeaderboardScreen(onBackClick: () -> Unit) {
     var housePoints by remember { mutableStateOf<List<HousePoints>>(emptyList()) }
@@ -57,7 +65,7 @@ fun LeaderboardScreen(onBackClick: () -> Unit) {
     LaunchedEffect(Unit) {
         try {
             val db = FirebaseFirestore.getInstance()
-            val result = db.collection("schools").document("sst").collection("leaderboard")
+            val result = db.collection("schools").document("jpjc").collection("leaderboard")
                 .orderBy("points", Query.Direction.DESCENDING)
                 .get()
                 .await()
@@ -66,7 +74,8 @@ fun LeaderboardScreen(onBackClick: () -> Unit) {
                 try {
                     HousePoints(
                         id = document.id,
-                        color = document.getString("name") ?: "",
+                        name = document.getString("name") ?: "",
+                        color = document.getString("color") ?: "",
                         points = document.getLong("points") ?: 0L
                     )
                 } catch (e: Exception) {
@@ -239,27 +248,27 @@ fun LeaderboardContent(housePoints: List<HousePoints>) {
                 PodiumColumn(
                     position = 3,
                     height = 180.dp,
-                    color = getHouseColor(housePoints[2].color),
+                    color = parseHouseColor(housePoints[2].color),
                     points = formatExactPoints(housePoints[2].points),
-                    houseColor = housePoints[2].color
+                    houseName = housePoints[2].name
                 )
                 Spacer(modifier = Modifier.width(12.dp))
 
                 PodiumColumn(
                     position = 1,
                     height = 240.dp,
-                    color = getHouseColor(housePoints[0].color),
+                    color = parseHouseColor(housePoints[0].color),
                     points = formatExactPoints(housePoints[0].points),
-                    houseColor = housePoints[0].color
+                    houseName = housePoints[0].name
                 )
                 Spacer(modifier = Modifier.width(12.dp))
 
                 PodiumColumn(
                     position = 2,
                     height = 210.dp,
-                    color = getHouseColor(housePoints[1].color),
+                    color = parseHouseColor(housePoints[1].color),
                     points = formatExactPoints(housePoints[1].points),
-                    houseColor = housePoints[1].color
+                    houseName = housePoints[1].name
                 )
             }
         }
@@ -277,8 +286,8 @@ fun LeaderboardContent(housePoints: List<HousePoints>) {
                     LeaderboardRankItem(
                         position = "${getOrdinal(position)}",
                         points = "${formatExactPoints(house.points)} POINTS",
-                        houseColor = house.color,
-                        backgroundColor = getHouseColor(house.color)
+                        houseName = house.name,
+                        backgroundColor = parseHouseColor(house.color)
                     )
                 }
             }
@@ -293,7 +302,7 @@ fun PodiumColumn(
     height: androidx.compose.ui.unit.Dp,
     color: Color,
     points: String,
-    houseColor: String
+    houseName: String
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -317,16 +326,16 @@ fun PodiumColumn(
                         .background(MaterialTheme.colorScheme.surface),
                     contentAlignment = Alignment.Center
                 ) {
-                    val drawableId = getHouseDrawableId(houseColor)
+                    val drawableId = getHouseDrawableId(houseName)
                     if (drawableId != null) {
                         Image(
                             painter = painterResource(id = drawableId),
-                            contentDescription = "${houseColor} house icon",
+                            contentDescription = "${houseName} house icon",
                             modifier = Modifier.size(48.dp),
                         )
                     } else {
                         Text(
-                            text = getHouseEmoji(houseColor),
+                            text = getHouseEmoji(houseName),
                             fontSize = 24.sp
                         )
                     }
@@ -351,7 +360,7 @@ fun PodiumColumn(
 fun LeaderboardRankItem(
     position: String,
     points: String,
-    houseColor: String,
+    houseName: String,
     backgroundColor: Color
 ) {
     Row(
@@ -400,16 +409,16 @@ fun LeaderboardRankItem(
                         .background(MaterialTheme.colorScheme.surface),
                     contentAlignment = Alignment.Center
                 ) {
-                    val drawableId = getHouseDrawableId(houseColor)
+                    val drawableId = getHouseDrawableId(houseName)
                     if (drawableId != null) {
                         Image(
                             painter = painterResource(id = drawableId),
-                            contentDescription = "${houseColor} house icon",
+                            contentDescription = "${houseName} house icon",
                             modifier = Modifier.size(40.dp),
                         )
                     } else {
                         Text(
-                            text = getHouseEmoji(houseColor),
+                            text = getHouseEmoji(houseName),
                             fontSize = 18.sp
                         )
                     }
@@ -429,8 +438,21 @@ fun LeaderboardRankItem(
 }
 
 // Helper functions
-private fun getHouseColor(color: String): Color {
-    return when (color.lowercase()) {
+private fun parseHouseColor(colorString: String): Color {
+    return try {
+        if (colorString.startsWith("#")) {
+            Color(android.graphics.Color.parseColor(colorString))
+        } else {
+            // Fallback to predefined colors
+            getHouseColorByName(colorString)
+        }
+    } catch (e: Exception) {
+        Color(0xFF718096) // Default gray color
+    }
+}
+
+private fun getHouseColorByName(colorName: String): Color {
+    return when (colorName.lowercase()) {
         "red" -> Color(0xFFE53E3E)
         "blue" -> Color(0xFF3182CE)
         "green" -> Color(0xFF38A169)
@@ -440,10 +462,12 @@ private fun getHouseColor(color: String): Color {
     }
 }
 
-// Safely get .png drawable ID, returns null if missing
-private fun getHouseDrawableId(color: String): Int? {
+// Updated to use house names instead of colors
+private fun getHouseDrawableId(houseName: String): Int? {
     return try {
-        when (color.lowercase()) {
+        when (houseName.lowercase()) {
+
+            // Fallback for color-based names if needed
             "red" -> R.drawable.red
             "blue" -> R.drawable.blue
             "green" -> R.drawable.green
@@ -456,9 +480,16 @@ private fun getHouseDrawableId(color: String): Int? {
     }
 }
 
-// Emoji fallback if no PNG exists
-private fun getHouseEmoji(color: String): String {
-    return when (color.lowercase()) {
+// Updated emoji fallback for house names
+private fun getHouseEmoji(houseName: String): String {
+    return when (houseName.lowercase()) {
+        "aquila" -> "🦅"
+        "aries" -> "🐏"
+        "pavo" -> "🦚"
+        "taurus" -> "🐂"
+        "ursa" -> "🐻"
+        "volans" -> "🐟"
+        // Fallback for color-based names
         "red" -> "🔴"
         "blue" -> "🔵"
         "green" -> "🟢"

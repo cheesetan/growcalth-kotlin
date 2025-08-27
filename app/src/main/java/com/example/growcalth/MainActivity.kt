@@ -329,23 +329,5 @@ fun GoogleLoginScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         // Fixed Sign Up Text - only "Sign up" is clickable
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = "Don't have an account? ",
-                color = Color(0xFF757575),
-                fontSize = 14.sp
-            )
-            Text(
-                text = "Sign up",
-                color = Accent,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-                textDecoration = TextDecoration.Underline,
-                modifier = Modifier.clickable { onSignUpClick() }
-            )
-        }
     }
 }

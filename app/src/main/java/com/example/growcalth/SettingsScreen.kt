@@ -41,9 +41,6 @@ fun SettingsTab() {
         SettingsSection(title = "ACCOUNT") { AccountCard() }
         Spacer(modifier = Modifier.height(32.dp))
 
-        SettingsSection(title = "APPEARANCE") { AppearanceSelector() }
-        Spacer(modifier = Modifier.height(32.dp))
-
         SettingsSection(title = "PERMISSIONS") { PermissionsCard() }
         Spacer(modifier = Modifier.height(32.dp))
 
@@ -149,40 +146,6 @@ fun AccountCard() {
                 imageVector = Icons.Default.KeyboardArrowRight,
                 contentDescription = "Arrow Right",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@Composable
-fun AppearanceSelector() {
-    var selectedAppearance by remember { mutableStateOf(1) }
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                AppearanceOption("Light", 0, selectedAppearance) { selectedAppearance = it }
-                AppearanceOption("Automatic", 1, selectedAppearance) { selectedAppearance = it }
-                AppearanceOption("Dark", 2, selectedAppearance) { selectedAppearance = it }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = "Automatic sets GrowCalth's appearance based on your device's appearance.",
-                fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                lineHeight = 20.sp
             )
         }
     }
