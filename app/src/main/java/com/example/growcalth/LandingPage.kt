@@ -43,21 +43,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.Offset
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.health.connect.client.HealthConnectClient
 import com.example.growcalth.ui.theme.GrowCalthTheme
-import com.example.growcalth.ui.theme.Accent
-import com.example.growcalth.ui.theme.Surface
-import com.example.growcalth.ui.theme.OnSurface
-import com.example.growcalth.ui.theme.SurfaceVariant
-import com.example.growcalth.ui.theme.Gold
-import com.example.growcalth.ui.theme.Success
-import com.example.growcalth.ui.theme.Info
-import kotlin.math.cos
-import kotlin.math.sin
-import com.example.growcalth.LeaderboardActivity
-import com.example.growcalth.ChallengesScreen
-import com.example.growcalth.AnnouncementsTab
-import com.example.growcalth.SettingsTab
 import com.google.firebase.FirebaseApp
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
@@ -67,6 +53,10 @@ import java.util.*
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class LandingPageActivity : ComponentActivity() {
     private lateinit var db: FirebaseFirestore
@@ -146,6 +136,7 @@ enum class Destination(val label: String, val icon: IconType) {
     NAPFA("NAPFA", IconType.Drawable { painterResource(id = R.drawable.directions_run_24px) }),
     SETTINGS("Settings", IconType.Vector(Icons.Default.Settings)),
 }
+
 @Composable
 fun LandingPage(
     db: FirebaseFirestore,
@@ -156,6 +147,22 @@ fun LandingPage(
     val startDestination = Destination.HOME
     var selectedDestination by rememberSaveable { mutableIntStateOf(startDestination.ordinal) }
     var showGoalDialog by remember { mutableStateOf(false) }
+
+    // Add state for user's school code
+    var userSchoolCode by remember { mutableStateOf<String?>(null) }
+
+    // Fetch user's school code
+    LaunchedEffect(Unit) {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid
+        if (uid != null) {
+            try {
+                userSchoolCode = getUserSchoolCode(uid)
+                Log.d("LandingPage", "User school code: $userSchoolCode")
+            } catch (e: Exception) {
+                Log.e("LandingPage", "Error fetching user school code", e)
+            }
+        }
+    }
 
     Scaffold(
         modifier = modifier,
@@ -259,7 +266,12 @@ fun LandingPage(
                     permissionLauncher = permissionLauncher,
                     onViewModelCreated = onViewModelCreated
                 )
-                1 -> AnnouncementsTab()
+                1 -> AnnouncementsTab(
+                    userSchool = userSchoolCode,
+                    onAnnouncementClick = { title, content, timestamp ->
+                        Log.d("LandingPage", "Announcement clicked: $title")
+                    }
+                )
                 2 -> ChallengesScreen()
                 3 -> NapfaTab(db = db)
                 4 -> SettingsTab()
@@ -272,6 +284,7 @@ fun LandingPage(
         GoalDialog(onDismiss = { showGoalDialog = false })
     }
 }
+
 @Composable
 fun NavigationItem(
     destination: Destination,
@@ -465,10 +478,17 @@ fun GoalItem(
         }
     }
 }
-suspend fun getUserSchoolCode(uid: String): String? {
-    val db = FirebaseFirestore.getInstance()
-    val snapshot = db.collection("users").document(uid).get().await()
-    return snapshot.getString("schoolCode")
+
+// Fixed getUserSchoolCode function
+private suspend fun getUserSchoolCode(uid: String): String? {
+    return try {
+        val db = FirebaseFirestore.getInstance()
+        val snapshot = db.collection("users").document(uid).get().await()
+        snapshot.getString("schoolCode")
+    } catch (e: Exception) {
+        Log.e("getUserSchoolCode", "Error getting school code", e)
+        null
+    }
 }
 
 @Composable
@@ -496,7 +516,7 @@ fun HomeTab(
     val healthConnectAvailable by healthViewModel.healthConnectAvailable.collectAsState()
     Log.d("HomeTab", "HealthConnectAvailable Value: $healthConnectAvailable")
 
-    // --- NEW: schoolCode state ---
+    // schoolCode state
     var schoolCode by remember { mutableStateOf<String?>(null) }
 
     // Leaderboard states
@@ -545,9 +565,9 @@ fun HomeTab(
         }
     }
 
-    // --- NEW: Fetch schoolCode from Firestore ---
+    // Fetch schoolCode from Firestore
     LaunchedEffect(Unit) {
-        val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+        val uid = FirebaseAuth.getInstance().currentUser?.uid
         if (uid != null) {
             try {
                 schoolCode = getUserSchoolCode(uid)
@@ -558,7 +578,7 @@ fun HomeTab(
         }
     }
 
-    // --- Load leaderboard only after schoolCode is available ---
+    // Load leaderboard only after schoolCode is available
     LaunchedEffect(schoolCode) {
         if (schoolCode != null) {
             try {
@@ -951,12 +971,6 @@ fun LeaderboardItem(
         }
     }
 }
-
-data class HousePoints2(
-    val id: String,
-    val color: String,
-    val points: Long
-)
 
 // Helper functions
 private fun getHouseColor(color: String): Color {

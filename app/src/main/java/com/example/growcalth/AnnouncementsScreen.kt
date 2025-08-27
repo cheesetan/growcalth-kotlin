@@ -18,9 +18,6 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.foundation.border
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -29,11 +26,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
-import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.graphics.Paint
-import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.platform.LocalDensity
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import kotlinx.coroutines.tasks.await
@@ -59,9 +51,9 @@ data class HouseEvent(
     val dateAdded: Date? = null
 )
 
-
 @Composable
 fun AnnouncementsTab(
+    userSchool: String?, // Receive school from user data
     onAnnouncementClick: (String, String, String) -> Unit = { _, _, _ -> }
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
@@ -186,6 +178,7 @@ fun AnnouncementsTab(
                         )
                     } else {
                         AnnouncementsContent(
+                            userSchool = userSchool,
                             onAnnouncementClick = { title, content, timestamp ->
                                 selectedAnnouncement = Announcement(
                                     header = title,
@@ -205,6 +198,7 @@ fun AnnouncementsTab(
                         )
                     } else {
                         EventsContent(
+                            userSchool = userSchool,
                             onEventClick = { header, desc, date, venue ->
                                 selectedEvent = HouseEvent(
                                     header = header,
@@ -223,17 +217,37 @@ fun AnnouncementsTab(
 
 @Composable
 fun AnnouncementsContent(
+    userSchool: String?, // Changed to nullable String
     onAnnouncementClick: (String, String, String) -> Unit = { _, _, _ -> }
 ) {
+    // Handle null case
+    if (userSchool == null) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = "School information not available",
+                fontSize = 16.sp,
+                color = Color(0xFF666666),
+                textAlign = TextAlign.Center
+            )
+        }
+        return
+    }
+
     var announcements by remember { mutableStateOf<List<Announcement>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     // Load announcements from Firebase
-    LaunchedEffect(Unit) {
+    LaunchedEffect(userSchool) {
         try {
             val db = FirebaseFirestore.getInstance()
-            val result = db.collection("schools").document("sst").collection("announcements")
+            val result = db.collection("schools").document(userSchool).collection("announcements")
                 .orderBy("dateAdded", Query.Direction.DESCENDING)
                 .get()
                 .await()
@@ -375,16 +389,10 @@ fun ModernAnnouncementCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 5.dp, horizontal = 5.dp)
-            .customCardShadow(
-                dropShadowColor = Color(0xFF4F4F52).copy(alpha = 0.25f),
-                dropShadowBlur = 25.dp,
-                innerShadowColor = Color(0xFFF4F4F6).copy(alpha = 0.9f),
-                innerShadowBlur = 65.dp
-            )
             .border(1.dp, Color.White, RoundedCornerShape(16.dp))
             .clickable { onCardClick() },
         colors = CardDefaults.cardColors(containerColor = backgroundColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         shape = RoundedCornerShape(16.dp)
     ) {
         Column(
@@ -458,17 +466,37 @@ fun ModernAnnouncementCard(
 
 @Composable
 fun EventsContent(
+    userSchool: String?, // Changed to nullable String
     onEventClick: (String, String, String, String) -> Unit = { _, _, _, _ -> }
 ) {
+    // Handle null case
+    if (userSchool == null) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = "School information not available",
+                fontSize = 16.sp,
+                color = Color(0xFF666666),
+                textAlign = TextAlign.Center
+            )
+        }
+        return
+    }
+
     var events by remember { mutableStateOf<List<HouseEvent>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     // Load events from Firebase
-    LaunchedEffect(Unit) {
+    LaunchedEffect(userSchool) {
         try {
             val db = FirebaseFirestore.getInstance()
-            val result = db.collection("schools").document("sst").collection("houseEvents")
+            val result = db.collection("schools").document(userSchool).collection("houseEvents")
                 .orderBy("dateAdded", Query.Direction.DESCENDING)
                 .get()
                 .await()
@@ -605,16 +633,10 @@ fun ModernEventCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 5.dp, horizontal = 5.dp)
-            .customCardShadow(
-                dropShadowColor = Color(0xFF4F4F52).copy(alpha = 0.25f),
-                dropShadowBlur = 25.dp,
-                innerShadowColor = Color(0xFFF4F4F6).copy(alpha = 0.8f),
-                innerShadowBlur = 35.dp
-            )
             .border(1.dp, Color.White, RoundedCornerShape(16.dp))
             .clickable { onCardClick() },
         colors = CardDefaults.cardColors(containerColor = backgroundColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         shape = RoundedCornerShape(16.dp)
     ) {
         Column(
@@ -697,31 +719,6 @@ fun ModernEventCard(
         }
     }
 }
-
-// Custom shadow modifier for cards
-fun Modifier.customCardShadow(
-    dropShadowColor: Color,
-    dropShadowBlur: androidx.compose.ui.unit.Dp,
-    innerShadowColor: Color,
-    innerShadowBlur: androidx.compose.ui.unit.Dp
-) = this.then(
-    drawWithContent {
-        drawContent()
-
-        // Draw inner shadow effect using a simplified approach
-        drawRoundRect(
-            color = innerShadowColor,
-            size = size,
-            cornerRadius = CornerRadius(16.dp.toPx()),
-            blendMode = BlendMode.Multiply
-        )
-    }.shadow(
-        elevation = dropShadowBlur / 2, // Approximate the blur effect
-        shape = RoundedCornerShape(16.dp),
-        ambientColor = dropShadowColor,
-        spotColor = dropShadowColor
-    )
-)
 
 @Composable
 fun AnnouncementDetailView(
@@ -890,7 +887,7 @@ fun EventDetailView(
     }
 }
 
-// Helper function to format event date (NEW)
+// Helper function to format event date
 private fun formatEventDate(date: Date?): String {
     if (date == null) return ""
     val formatter = SimpleDateFormat("MMMM dd, yyyy 'at' h:mm a", Locale.getDefault())
