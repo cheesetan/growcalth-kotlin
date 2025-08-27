@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.growcalth.ui.theme.GrowCalthTheme
 import com.example.growcalth.ui.theme.ThemeMode
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import kotlinx.coroutines.tasks.await
@@ -60,37 +61,61 @@ fun LeaderboardScreen(onBackClick: () -> Unit) {
     var housePoints by remember { mutableStateOf<List<HousePoints>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var userSchoolCode by remember { mutableStateOf<String?>(null) }
 
-    // Load house points from Firebase
+    // Fetch user's school code first
     LaunchedEffect(Unit) {
-        try {
-            val db = FirebaseFirestore.getInstance()
-            val result = db.collection("schools").document("jpjc").collection("leaderboard")
-                .orderBy("points", Query.Direction.DESCENDING)
-                .get()
-                .await()
-
-            val fetchedHousePoints = result.documents.mapNotNull { document ->
-                try {
-                    HousePoints(
-                        id = document.id,
-                        name = document.getString("name") ?: "",
-                        color = document.getString("color") ?: "",
-                        points = document.getLong("points") ?: 0L
-                    )
-                } catch (e: Exception) {
-                    Log.e("LeaderboardScreen", "Error parsing house points: ${document.id}", e)
-                    null
-                }
+        val uid = FirebaseAuth.getInstance().currentUser?.uid
+        if (uid != null) {
+            try {
+                userSchoolCode = getUserSchoolCode(uid)
+                Log.d("LeaderboardScreen", "User school code: $userSchoolCode")
+            } catch (e: Exception) {
+                Log.e("LeaderboardScreen", "Error fetching user school code", e)
+                errorMessage = "Failed to load user data: ${e.message}"
+                isLoading = false
             }
-
-            housePoints = fetchedHousePoints
+        } else {
+            errorMessage = "User not authenticated"
             isLoading = false
+        }
+    }
 
-        } catch (e: Exception) {
-            Log.e("LeaderboardScreen", "Error fetching house points", e)
-            errorMessage = "Failed to load leaderboard: ${e.message}"
-            isLoading = false
+    // Load house points from Firebase only after we have the school code
+    LaunchedEffect(userSchoolCode) {
+        if (userSchoolCode != null) {
+            try {
+                val db = FirebaseFirestore.getInstance()
+                val result = db.collection("schools")
+                    .document(userSchoolCode!!) // Use the fetched school code
+                    .collection("leaderboard")
+                    .orderBy("points", Query.Direction.DESCENDING)
+                    .get()
+                    .await()
+
+                val fetchedHousePoints = result.documents.mapNotNull { document ->
+                    try {
+                        HousePoints(
+                            id = document.id,
+                            name = document.getString("name") ?: "",
+                            color = document.getString("color") ?: "",
+                            points = document.getLong("points") ?: 0L
+                        )
+                    } catch (e: Exception) {
+                        Log.e("LeaderboardScreen", "Error parsing house points: ${document.id}", e)
+                        null
+                    }
+                }
+
+                housePoints = fetchedHousePoints
+                Log.d("LeaderboardScreen", "Loaded ${fetchedHousePoints.size} house points for school: $userSchoolCode")
+                isLoading = false
+
+            } catch (e: Exception) {
+                Log.e("LeaderboardScreen", "Error fetching house points", e)
+                errorMessage = "Failed to load leaderboard: ${e.message}"
+                isLoading = false
+            }
         }
     }
 
@@ -205,6 +230,18 @@ fun LeaderboardScreen(onBackClick: () -> Unit) {
     }
 }
 
+// Helper function to get user's school code (same as in AnnouncementsTab)
+private suspend fun getUserSchoolCode(uid: String): String? {
+    return try {
+        val db = FirebaseFirestore.getInstance()
+        val snapshot = db.collection("users").document(uid).get().await()
+        snapshot.getString("schoolCode")
+    } catch (e: Exception) {
+        Log.e("getUserSchoolCode", "Error getting school code", e)
+        null
+    }
+}
+
 @Composable
 fun LeaderboardContent(housePoints: List<HousePoints>) {
     Column(
@@ -294,7 +331,6 @@ fun LeaderboardContent(housePoints: List<HousePoints>) {
         }
     }
 }
-
 
 @Composable
 fun PodiumColumn(
