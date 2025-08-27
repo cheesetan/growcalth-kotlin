@@ -166,7 +166,7 @@ fun AnnouncementsTab(
                 Spacer(modifier = Modifier.height(20.dp))
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(5.dp))
 
             // Content based on selected tab
             when (selectedTab) {

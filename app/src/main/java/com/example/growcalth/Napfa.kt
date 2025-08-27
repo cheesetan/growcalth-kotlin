@@ -29,15 +29,17 @@ import kotlinx.coroutines.launch
 
 class NapfaActivity : ComponentActivity() {
     private lateinit var db: FirebaseFirestore
+    private lateinit var authManager: FirebaseAuthManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Initialize Firebase Firestore
+        // Initialize Firebase Firestore and AuthManager
         db = FirebaseFirestore.getInstance()
+        authManager = FirebaseAuthManager(this)
 
         setContent {
-            NapfaScreen(db)
+            NapfaScreen(db = db, authManager = authManager)
         }
     }
 }
@@ -68,7 +70,7 @@ data class TestResults(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NapfaScreen(db: FirebaseFirestore) {
+fun NapfaScreen(db: FirebaseFirestore, authManager: FirebaseAuthManager) {
     var availableYears by remember { mutableStateOf<List<String>>(emptyList()) }
     var currentYearIndex by remember { mutableStateOf(0) }
     var testResults by remember { mutableStateOf<List<TestResults>>(emptyList()) }
@@ -77,61 +79,79 @@ fun NapfaScreen(db: FirebaseFirestore) {
     var error by remember { mutableStateOf<String?>(null) }
     var selectedLevel by remember { mutableStateOf("Sec 2") }
     var showYearDropdown by remember { mutableStateOf(false) }
+    var userSchool by remember { mutableStateOf<String?>(null) }
 
     val currentYear = if (availableYears.isNotEmpty()) availableYears[currentYearIndex] else ""
 
-    // Load available years when the composable is first created
+    // Get the school name first
     LaunchedEffect(Unit) {
-        try {
-            Log.d("NapfaActivity", "Loading NAPFA data...")
+        val schoolName = authManager.getSchoolName()
+        Log.d("NapfaActivity", "Retrieved school name: $schoolName")
 
-            val querySnapshot = db.collection("schools")
-                .document("sst")
-                .collection("napfa")
-                .get()
-                .await()
+        if (schoolName != null) {
+            userSchool = schoolName.lowercase() // Convert to lowercase to match Firestore document IDs
+        } else {
+            Log.e("NapfaActivity", "No school name found in local storage")
+            error = "School information not found. Please log in again."
+            isLoading = false
+            return@LaunchedEffect
+        }
+    }
 
-            if (!querySnapshot.isEmpty) {
-                val documentIds = querySnapshot.documents.map { it.id }
-                Log.d("NapfaActivity", "Found documents: $documentIds")
+    // Load available years when the school name is available
+    LaunchedEffect(userSchool) {
+        if (userSchool != null) {
+            try {
+                Log.d("NapfaActivity", "Loading NAPFA data for school: $userSchool")
 
-                // Extract unique years from document IDs (s2-2023, s4-2024, etc.)
-                val years = documentIds
-                    .mapNotNull { documentId ->
-                        // Extract year from document IDs like "s2-2023", "s4-2024"
-                        val parts = documentId.split("-")
-                        if (parts.size == 2) parts[1] else null
+                val querySnapshot = db.collection("schools")
+                    .document(userSchool!!)
+                    .collection("napfa")
+                    .get()
+                    .await()
+
+                if (!querySnapshot.isEmpty) {
+                    val documentIds = querySnapshot.documents.map { it.id }
+                    Log.d("NapfaActivity", "Found documents: $documentIds")
+
+                    // Extract unique years from document IDs (s2-2023, s4-2024, etc.)
+                    val years = documentIds
+                        .mapNotNull { documentId ->
+                            // Extract year from document IDs like "s2-2023", "s4-2024"
+                            val parts = documentId.split("-")
+                            if (parts.size == 2) parts[1] else null
+                        }
+                        .distinct()
+                        .sorted()
+
+                    availableYears = years
+                    Log.d("NapfaActivity", "Found years: $years")
+
+                    if (years.isNotEmpty()) {
+                        currentYearIndex = years.size - 1 // Start with the latest year
+                        isLoading = false
+                    } else {
+                        error = "No NAPFA data found for your school"
+                        isLoading = false
                     }
-                    .distinct()
-                    .sorted()
-
-                availableYears = years
-                Log.d("NapfaActivity", "Found years: $years")
-
-                if (years.isNotEmpty()) {
-                    currentYearIndex = years.size - 1 // Start with the latest year
-                    isLoading = false
                 } else {
-                    error = "No NAPFA data found"
+                    error = "No NAPFA documents found for your school"
                     isLoading = false
                 }
-            } else {
-                error = "No NAPFA documents found"
+            } catch (e: Exception) {
+                Log.e("NapfaActivity", "Error loading NAPFA data", e)
+                error = "Failed to load data: ${e.message}"
                 isLoading = false
             }
-        } catch (e: Exception) {
-            Log.e("NapfaActivity", "Error loading NAPFA data", e)
-            error = "Failed to load data: ${e.message}"
-            isLoading = false
         }
     }
 
     // Load data when year or level changes
-    LaunchedEffect(currentYear, selectedLevel) {
-        if (currentYear.isNotEmpty() && !isLoading) {
+    LaunchedEffect(currentYear, selectedLevel, userSchool) {
+        if (currentYear.isNotEmpty() && !isLoading && userSchool != null) {
             isLoadingData = true
             try {
-                Log.d("NapfaActivity", "Loading data for year: $currentYear, level: $selectedLevel")
+                Log.d("NapfaActivity", "Loading data for school: $userSchool, year: $currentYear, level: $selectedLevel")
 
                 // Determine the document ID based on selected level and year
                 val levelPrefix = when (selectedLevel) {
@@ -144,7 +164,7 @@ fun NapfaScreen(db: FirebaseFirestore) {
                 Log.d("NapfaActivity", "Looking for document: $documentId")
 
                 val documentSnapshot = db.collection("schools")
-                    .document("sst")
+                    .document(userSchool!!)
                     .collection("napfa")
                     .document(documentId)
                     .get()
@@ -209,7 +229,7 @@ fun NapfaScreen(db: FirebaseFirestore) {
                     CircularProgressIndicator(color = Color(0xFFE91E63))
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = "Loading NAPFA data...",
+                        text = if (userSchool == null) "Loading school information..." else "Loading NAPFA data...",
                         color = Color(0xFF666666),
                         fontSize = 16.sp
                     )

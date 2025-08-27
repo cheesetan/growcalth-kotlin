@@ -173,13 +173,13 @@ fun LandingPage(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(Color(0xFFEBEBF2)) // Light mode background
-                    .padding(horizontal = 20.dp, vertical = 16.dp)
-                    .padding(top = 20.dp),
+                    .padding(horizontal = 20.dp, vertical = 5.dp)
+                    .padding(top = 45.dp),
             ) {
                 Text(
                     text = when (selectedDestination) {
                         0 -> "Home"
-                        1 -> "Announcements"
+                        1 -> "Updates"
                         2 -> "Challenges"
                         3 -> "NAPFA"
                         4 -> "Settings"
@@ -215,13 +215,13 @@ fun LandingPage(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 20.dp) // Reduced from 36dp to 20dp
+                    .padding(horizontal = 17.dp, vertical = 36.dp) // Reduced from 36dp to 20dp
                     .background(Color(0xFFEBEBF2))
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(65.dp) // Reduced from 85.dp to 65.dp
+                        .height(75.dp) // Reduced from 85.dp to 65.dp
                         .shadow(
                             elevation = 16.dp,
                             shape = RoundedCornerShape(32.dp), // Adjusted corner radius
@@ -295,11 +295,11 @@ fun NavigationItem(
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(-6.dp),
+        verticalArrangement = Arrangement.spacedBy(-9.dp),
         modifier = Modifier
             .clickable { onClick() }
-            .width(80.dp)
-            .padding(horizontal = 2.dp, vertical = 2.dp)
+            .width(75.dp)
+            .padding(horizontal = 5.dp, vertical = 5.dp)
     ) {
         Box(
             modifier = Modifier
@@ -338,8 +338,8 @@ fun NavigationItem(
 
         Text(
             text = destination.label,
-            fontSize = 9.sp,
-            fontWeight = FontWeight.Bold,
+            fontSize = if (isSelected) 10.sp else 9.sp,
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
             color = if (isSelected) Color(0xFFE91E63) else Color(0xFF666666),
             textAlign = TextAlign.Center,
             maxLines = 1,
@@ -802,7 +802,10 @@ fun HomeTab(
 
 @Composable
 fun NapfaTab(db: FirebaseFirestore) {
-    NapfaScreen(db)
+    val context = LocalContext.current
+    val authManager = remember { FirebaseAuthManager(context) }
+
+    NapfaScreen(db = db, authManager = authManager)
 }
 
 @Composable

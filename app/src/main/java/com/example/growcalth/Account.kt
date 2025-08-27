@@ -31,13 +31,19 @@ data class UserProfile(
     val name: String = "",
     val email: String = "",
     val house: String = "",
+    val userSchool: String = "",
     val accountType: String = "",
     val studentId: String = ""
 )
 
 class AccountActivity : ComponentActivity() {
+    private lateinit var authManager: FirebaseAuthManager
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        authManager = FirebaseAuthManager(this)
+
         setContent {
             GrowCalthTheme {
                 AccountScreen(
@@ -73,7 +79,7 @@ fun AppTopBar(
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = Color.White
+            containerColor = Color(0xFFEBEBF2)
         )
     )
 }
@@ -105,7 +111,6 @@ fun AccountScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
     ) {
         // App Bar
         AppTopBar(
@@ -117,7 +122,7 @@ fun AccountScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFFF5F5F5)) // Light gray background for content area only
+                .background(Color(0xFFEBEBF2)) // Light gray background for content area only
                 .verticalScroll(rememberScrollState())
                 .padding(20.dp)
         ) {
@@ -157,7 +162,10 @@ fun AccountScreen(
                         AccountInfoRow(label = "Email", value = userProfile!!.email, isMultiline = true)
 
                         HorizontalDivider(color = Color.Gray.copy(alpha = 0.2f), thickness = 0.5.dp)
-                        AccountInfoRow(label = "House", value = userProfile!!.house)
+                        AccountInfoRow(label = "House", value = userProfile!!.house.capitalize())
+
+                        HorizontalDivider(color = Color.Gray.copy(alpha = 0.2f), thickness = 0.5.dp)
+                        AccountInfoRow(label = "School", value = userProfile!!.userSchool)
 
                         HorizontalDivider(color = Color.Gray.copy(alpha = 0.2f), thickness = 0.5.dp)
                         AccountInfoRow(label = "Account Type", value = userProfile!!.accountType)
@@ -311,39 +319,56 @@ suspend fun loadUserProfile(
                 .await()
 
             if (userDoc.exists()) {
+                val schoolCode = userDoc.getString("schoolCode") ?: ""
+                var schoolName = " "
+
+                // ✅ Query schools collection using schoolCode field
+                if (schoolCode.isNotEmpty()) {
+                    val schoolQuery = db.collection("schools")
+                        .whereEqualTo("schoolCode", schoolCode)
+                        .get()
+                        .await()
+
+                    if (!schoolQuery.isEmpty) {
+                        schoolName = schoolQuery.documents[0].getString("schoolName") ?: "Unknown School"
+                    }
+                    else{
+                        schoolName = schoolCode
+                    }
+                }
+
+
                 val profile = UserProfile(
-                    name = userDoc.getString("name") ?: userDoc.getString("displayName") ?: extractNameFromEmail(userEmail),
+                    name = userDoc.getString("name")
+                        ?: userDoc.getString("displayName")
+                        ?: extractNameFromEmail(userEmail),
                     email = userEmail,
                     house = userDoc.getString("house") ?: determineHouseFromEmail(userEmail),
+                    userSchool = schoolName, // ✅ Resolved school name
                     accountType = userDoc.getString("accountType") ?: determineAccountType(userEmail),
                     studentId = userDoc.getString("studentId") ?: ""
                 )
+
                 onSuccess(profile)
             } else {
                 val profile = UserProfile(
                     name = currentUser.displayName ?: extractNameFromEmail(userEmail),
                     email = userEmail,
                     house = determineHouseFromEmail(userEmail),
+                    userSchool = "Unknown School",
                     accountType = determineAccountType(userEmail),
                     studentId = ""
                 )
                 onSuccess(profile)
             }
         } catch (e: Exception) {
-            val profile = UserProfile(
-                name = currentUser.displayName ?: extractNameFromEmail(userEmail),
-                email = userEmail,
-                house = determineHouseFromEmail(userEmail),
-                accountType = determineAccountType(userEmail),
-                studentId = ""
-            )
-            onSuccess(profile)
+            onError("Failed to fetch profile: ${e.message}")
         }
-
     } catch (e: Exception) {
         onError("Failed to load user profile: ${e.message}")
     }
 }
+
 
 // Helper functions
 private fun extractNameFromEmail(email: String): String {

@@ -67,6 +67,7 @@ class FirebaseAuthManager(private val context: Context) {
         private const val KEY_USER_EMAIL = "user_email"
         private const val KEY_USER_UID = "user_uid"
         private const val KEY_USER_NAME = "user_name"
+        private const val KEY_SCHOOL_NAME = "school_name"
     }
 
     fun getCurrentUser(): FirebaseUser? = auth.currentUser
@@ -83,6 +84,27 @@ class FirebaseAuthManager(private val context: Context) {
             putString(KEY_USER_EMAIL, user.email)
             putString(KEY_USER_UID, user.uid)
             putString(KEY_USER_NAME, user.displayName)
+            apply()
+        }
+    }
+
+    // New method to save school name
+    fun saveSchoolName(schoolName: String) {
+        sharedPrefs.edit().apply {
+            putString(KEY_SCHOOL_NAME, schoolName)
+            apply()
+        }
+    }
+
+    // New method to get school name
+    fun getSchoolName(): String? {
+        return sharedPrefs.getString(KEY_SCHOOL_NAME, null)
+    }
+
+    // New method to clear school name
+    fun clearSchoolName() {
+        sharedPrefs.edit().apply {
+            remove(KEY_SCHOOL_NAME)
             apply()
         }
     }
@@ -220,7 +242,17 @@ class MainActivity : ComponentActivity() {
                         }
 
                         if (snapshot.exists()) {
-                            // User exists → navigate to landing page
+                            // User exists → extract and save school name
+                            val userData = snapshot.data
+                            val schoolName = userData?.get("schoolCode") as? String
+
+                            if (schoolName != null) {
+                                authManager.saveSchoolName(schoolName)
+                                Log.d("MainActivity", "School name saved: $schoolName")
+                            } else {
+                                Log.w("MainActivity", "School name not found in user data")
+                            }
+
                             showToast("Welcome back!")
                             navigateToLandingPage()
                         } else {
@@ -328,6 +360,5 @@ fun GoogleLoginScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Fixed Sign Up Text - only "Sign up" is clickable
     }
 }
