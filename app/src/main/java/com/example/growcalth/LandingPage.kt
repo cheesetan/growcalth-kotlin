@@ -58,6 +58,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
+// Add missing data class
+
 class LandingPageActivity : ComponentActivity() {
     private lateinit var db: FirebaseFirestore
     private lateinit var permissionLauncher: ActivityResultLauncher<Array<String>>
@@ -131,7 +133,7 @@ sealed class IconType {
 
 enum class Destination(val label: String, val icon: IconType) {
     HOME("Home", IconType.Vector(Icons.Default.Home)),
-    ANNOUNCEMENTS("Announcements", IconType.Drawable { painterResource(id = R.drawable.campaign_24px) }),
+    ANNOUNCEMENTS("Updates", IconType.Drawable { painterResource(id = R.drawable.campaign_24px) }),
     CHALLENGES("Challenges", IconType.Drawable { painterResource(id = R.drawable.flag_24px) }),
     NAPFA("NAPFA", IconType.Drawable { painterResource(id = R.drawable.directions_run_24px) }),
     SETTINGS("Settings", IconType.Vector(Icons.Default.Settings)),
@@ -592,9 +594,12 @@ fun HomeTab(
                     .await()
 
                 val fetchedHousePoints = result.documents.mapNotNull { document ->
+                    val colorValue = document.getString("color") ?: ""
+                    Log.d("HomeTab", "House ${document.id}: color=$colorValue, name=${document.getString("name")}, points=${document.getLong("points")}")
+
                     HousePoints(
                         id = document.id,
-                        color = document.getString("color") ?: "",
+                        color = colorValue,
                         name = document.getString("name") ?: "",
                         points = document.getLong("points") ?: 0L
                     )
@@ -974,13 +979,26 @@ fun LeaderboardItem(
 
 // Helper functions
 private fun getHouseColor(color: String): Color {
-    return when (color.lowercase()) {
-        "red" -> Color(0xFFE53E3E)
-        "blue" -> Color(0xFF3182CE)
-        "green" -> Color(0xFF38A169)
-        "yellow" -> Color(0xFFD69E2E)
-        "black" -> Color(0xFF2D3748)
-        else -> Color(0xFF718096)
+    return if (color.startsWith("#") && color.length == 7) {
+        try {
+            // Parse hex color from Firebase (e.g., "#607ED1")
+            Color(android.graphics.Color.parseColor(color))
+        } catch (e: Exception) {
+            Log.e("getHouseColor", "Failed to parse color: $color", e)
+            // Fallback to default color
+            Color(0xFF718096)
+        }
+    } else {
+        // Fallback for old color name format
+        when (color.lowercase()) {
+            "red" -> Color(0xFFE53E3E)
+            "blue" -> Color(0xFF3182CE)
+            "green" -> Color(0xFF38A169)
+            "yellow" -> Color(0xFFD69E2E)
+            "black" -> Color(0xFF2D3748)
+            "aries" -> Color(0xFF607ED1) // Based on your Firebase data
+            else -> Color(0xFF718096)
+        }
     }
 }
 
