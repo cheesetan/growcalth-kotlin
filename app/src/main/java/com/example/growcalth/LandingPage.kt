@@ -200,13 +200,20 @@ fun LandingPage(
                         shape = RoundedCornerShape(16.dp),
                         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
                     ) {
-                        Text(
-                            text = "You are unable to earn GrowCalth points.",
-                            color = Color(0xFF666666),
-                            fontSize = 15.sp,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(20.dp)
-                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(0.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "You are unable to earn GrowCalth points.",
+                                color = Color(0xFF666666),
+                                fontSize = 15.sp,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+                            )
+                        }
                     }
                 }
             }
@@ -215,7 +222,8 @@ fun LandingPage(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 17.dp, vertical = 36.dp) // Reduced from 36dp to 20dp
+                    .padding(horizontal = 17.dp)
+                    .padding(bottom = 30.dp, top = 20.dp)// Reduced from 36dp to 20dp
                     .background(Color(0xFFEBEBF2))
             ) {
                 Box(

@@ -46,6 +46,7 @@ class HouseActivity : ComponentActivity() {
                 ) { innerPadding ->
                     HouseSignUpScreen(
                         modifier = Modifier
+                            .background(Color(0xFFEBEBF2))
                             .padding(innerPadding)
                             .fillMaxSize(),
                         schoolId = schoolId,
@@ -96,7 +97,7 @@ fun HouseSignUpScreen(
 
     Column(
         modifier = modifier
-            .background(MaterialTheme.colorScheme.background)
+            .background(Color(0xFFEBEBF2))
             .padding(24.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -105,7 +106,7 @@ fun HouseSignUpScreen(
             modifier = Modifier
                 .size(120.dp)
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surface),
+                .background(Color(0xFFFFFFFF)),
             contentAlignment = Alignment.Center
         ) {
             Icon(

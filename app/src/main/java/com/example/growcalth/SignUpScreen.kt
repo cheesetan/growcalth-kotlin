@@ -42,7 +42,7 @@ class SignUpActivity : ComponentActivity() {
             GrowCalthTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = Color(0xFFFAFAFA)
+                    color = Color(0xFFEBEBF2)
                 ) {
                     SignUpScreen(
                         onBackClick = {
@@ -133,7 +133,7 @@ fun SignUpScreen(
                     modifier = Modifier
                         .size(120.dp)
                         .clip(CircleShape)
-                        .background(Color.White),
+                        .background(Color(0xFFFFFFFF)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
