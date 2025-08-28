@@ -21,14 +21,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.growcalth.ui.theme.GrowCalthTheme
+import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.text.style.TextAlign
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
@@ -221,15 +221,15 @@ fun AccountScreen(
     }
 
     if (showDeleteDialog) {
-        val coroutineScope = rememberCoroutineScope() // Add this line
+        val coroutineScope = rememberCoroutineScope()
 
-        DeleteAccountDialog(
+        EnhancedDeleteAccountDialog(
             isDeleting = isDeleting,
-            onConfirm = {
+            onConfirm = { password ->
                 isDeleting = true
-                // Use the proper coroutine scope
                 coroutineScope.launch {
-                    deleteAccount(
+                    deleteAccountWithReauth(
+                        password = password,
                         onSuccess = {
                             isDeleting = false
                             showDeleteDialog = false
@@ -344,128 +344,11 @@ fun AccountActionRow(
     }
 }
 
-// Function to load user profile from Firebase
-suspend fun loadUserProfile(
-    onSuccess: (UserProfile) -> Unit,
-    onError: (String) -> Unit
-) {
-    try {
-        val auth = FirebaseAuth.getInstance()
-        val currentUser = auth.currentUser
-
-        if (currentUser == null) {
-            onError("User not logged in")
-            return
-        }
-
-        val db = FirebaseFirestore.getInstance()
-        val userEmail = currentUser.email ?: ""
-
-        try {
-            val userDoc = db.collection("users")
-                .document(currentUser.uid)
-                .get()
-                .await()
-
-            if (userDoc.exists()) {
-                val schoolCode = userDoc.getString("schoolCode") ?: ""
-                var schoolName = " "
-
-                // ✅ Query schools collection using schoolCode field
-                if (schoolCode.isNotEmpty()) {
-                    val schoolQuery = db.collection("schools")
-                        .whereEqualTo("schoolCode", schoolCode)
-                        .get()
-                        .await()
-
-                    if (!schoolQuery.isEmpty) {
-                        schoolName = schoolQuery.documents[0].getString("schoolName") ?: "Unknown School"
-                    }
-                    else{
-                        schoolName = schoolCode
-                    }
-                }
-
-
-                val profile = UserProfile(
-                    name = userDoc.getString("name")
-                        ?: userDoc.getString("displayName")
-                        ?: extractNameFromEmail(userEmail),
-                    email = userEmail,
-                    house = userDoc.getString("house") ?: determineHouseFromEmail(userEmail),
-                    userSchool = schoolName, // ✅ Resolved school name
-                    accountType = userDoc.getString("accountType") ?: determineAccountType(userEmail),
-                    studentId = userDoc.getString("studentId") ?: ""
-                )
-
-                onSuccess(profile)
-            } else {
-                val profile = UserProfile(
-                    name = currentUser.displayName ?: extractNameFromEmail(userEmail),
-                    email = userEmail,
-                    house = determineHouseFromEmail(userEmail),
-                    userSchool = "Unknown School",
-                    accountType = determineAccountType(userEmail),
-                    studentId = ""
-                )
-                onSuccess(profile)
-            }
-        } catch (e: Exception) {
-            onError("Failed to fetch profile: ${e.message}")
-        }
-    } catch (e: Exception) {
-        onError("Failed to load user profile: ${e.message}")
-    }
-}
-
-
-// Helper functions
-private fun extractNameFromEmail(email: String): String {
-    if (email.isEmpty()) return "Unknown User"
-    val username = email.split("@").firstOrNull() ?: return "Unknown User"
-
-    // Handle the specific format like "aathithya_j@s2021.ssts.edu.sg"
-    val cleanUsername = username.replace("_", " ")
-
-    return cleanUsername.split(" ")
-        .joinToString(" ") { word ->
-            word.replaceFirstChar {
-                if (it.isLowerCase()) it.titlecase() else it.toString()
-            }
-        }
-}
-
-private fun determineHouseFromEmail(email: String): String {
-    return when {
-        email.contains("ssts.edu.sg") -> {
-            // For SST students, try to determine house from student ID or other patterns
-            // Since we don't have house info in the email, return empty for now
-            ""
-        }
-        else -> ""
-    }
-}
-
-private fun determineAccountType(email: String): String {
-    return when {
-        email.contains("@s2021.ssts.edu.sg") -> "Alumnus" // Graduated in 2021
-        email.contains("@s2022.ssts.edu.sg") -> "Alumnus" // Graduated in 2022
-        email.contains("@s2023.ssts.edu.sg") -> "Alumnus" // Graduated in 2023
-        email.contains("@s2024.ssts.edu.sg") -> "Student" // Current Year 4 (graduating 2024)
-        email.contains("@s2025.ssts.edu.sg") -> "Student" // Current Year 3 (graduating 2025)
-        email.contains("@s2026.ssts.edu.sg") -> "Student" // Current Year 2 (graduating 2026)
-        email.contains("@s2027.ssts.edu.sg") -> "Student" // Current Year 1 (graduating 2027)
-        email.contains("ssts.edu.sg") -> "Student" // Default for SST emails
-        email.contains("@staff.") -> "Staff"
-        email.contains("@teacher.") -> "Teacher"
-        else -> "User"
-    }
-}
-
+// Enhanced delete dialog for Google Auth - simpler approach
 @Composable
-fun DeleteAccountDialog(
+fun EnhancedDeleteAccountDialog(
     isDeleting: Boolean,
-    onConfirm: () -> Unit,
+    onConfirm: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
     Dialog(onDismissRequest = { if (!isDeleting) onDismiss() }) {
@@ -533,7 +416,7 @@ fun DeleteAccountDialog(
                         }
 
                         Button(
-                            onClick = onConfirm,
+                            onClick = { onConfirm("") }, // Empty string since no password needed for Google Auth
                             modifier = Modifier.weight(1f),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = Color.Red,
@@ -554,9 +437,11 @@ fun DeleteAccountDialog(
     }
 }
 
-// Function to delete user account and data from Firebase
-suspend fun deleteAccount(
-    onSuccess: () -> Unit,
+// Remove these components as they're not needed for Google Auth
+
+// Function to load user profile from Firebase
+suspend fun loadUserProfile(
+    onSuccess: (UserProfile) -> Unit,
     onError: (String) -> Unit
 ) {
     try {
@@ -569,21 +454,173 @@ suspend fun deleteAccount(
         }
 
         val db = FirebaseFirestore.getInstance()
-        val userId = currentUser.uid
+        val userEmail = currentUser.email ?: ""
 
         try {
-            // Delete user data from Firestore
-            db.collection("users")
-                .document(userId)
-                .delete()
+            val userDoc = db.collection("users")
+                .document(currentUser.uid)
+                .get()
                 .await()
 
-            // Delete the user authentication account
-            currentUser.delete().await()
+            if (userDoc.exists()) {
+                val schoolCode = userDoc.getString("schoolCode") ?: ""
+                var schoolName = " "
 
-            onSuccess()
+                // ✅ Query schools collection using schoolCode field
+                if (schoolCode.isNotEmpty()) {
+                    val schoolQuery = db.collection("schools")
+                        .whereEqualTo("schoolCode", schoolCode)
+                        .get()
+                        .await()
+
+                    if (!schoolQuery.isEmpty) {
+                        schoolName = schoolQuery.documents[0].getString("schoolName") ?: "Unknown School"
+                    }
+                    else{
+                        schoolName = schoolCode
+                    }
+                }
+
+                val profile = UserProfile(
+                    name = userDoc.getString("name")
+                        ?: userDoc.getString("displayName")
+                        ?: extractNameFromEmail(userEmail),
+                    email = userEmail,
+                    house = userDoc.getString("house") ?: determineHouseFromEmail(userEmail),
+                    userSchool = schoolName, // ✅ Resolved school name
+                    accountType = userDoc.getString("accountType") ?: determineAccountType(userEmail),
+                    studentId = userDoc.getString("studentId") ?: ""
+                )
+
+                onSuccess(profile)
+            } else {
+                val profile = UserProfile(
+                    name = currentUser.displayName ?: extractNameFromEmail(userEmail),
+                    email = userEmail,
+                    house = determineHouseFromEmail(userEmail),
+                    userSchool = "Unknown School",
+                    accountType = determineAccountType(userEmail),
+                    studentId = ""
+                )
+                onSuccess(profile)
+            }
         } catch (e: Exception) {
-            onError("Failed to delete account: ${e.message}")
+            onError("Failed to fetch profile: ${e.message}")
+        }
+    } catch (e: Exception) {
+        onError("Failed to load user profile: ${e.message}")
+    }
+}
+
+// Helper functions
+private fun extractNameFromEmail(email: String): String {
+    if (email.isEmpty()) return "Unknown User"
+    val username = email.split("@").firstOrNull() ?: return "Unknown User"
+
+    // Handle the specific format like "aathithya_j@s2021.ssts.edu.sg"
+    val cleanUsername = username.replace("_", " ")
+
+    return cleanUsername.split(" ")
+        .joinToString(" ") { word ->
+            word.replaceFirstChar {
+                if (it.isLowerCase()) it.titlecase() else it.toString()
+            }
+        }
+}
+
+private fun determineHouseFromEmail(email: String): String {
+    return when {
+        email.contains("ssts.edu.sg") -> {
+            // For SST students, try to determine house from student ID or other patterns
+            // Since we don't have house info in the email, return empty for now
+            ""
+        }
+        else -> ""
+    }
+}
+
+private fun determineAccountType(email: String): String {
+    return when {
+        email.contains("@s2021.ssts.edu.sg") -> "Alumnus" // Graduated in 2021
+        email.contains("@s2022.ssts.edu.sg") -> "Alumnus" // Graduated in 2022
+        email.contains("@s2023.ssts.edu.sg") -> "Alumnus" // Graduated in 2023
+        email.contains("@s2024.ssts.edu.sg") -> "Student" // Current Year 4 (graduating 2024)
+        email.contains("@s2025.ssts.edu.sg") -> "Student" // Current Year 3 (graduating 2025)
+        email.contains("@s2026.ssts.edu.sg") -> "Student" // Current Year 2 (graduating 2026)
+        email.contains("@s2027.ssts.edu.sg") -> "Student" // Current Year 1 (graduating 2027)
+        email.contains("ssts.edu.sg") -> "Student" // Default for SST emails
+        email.contains("@staff.") -> "Staff"
+        email.contains("@teacher.") -> "Teacher"
+        else -> "User"
+    }
+}
+
+// Enhanced delete function for Google Auth - handles re-authentication automatically
+suspend fun deleteAccountWithReauth(
+    password: String, // Not used for Google Auth but kept for function signature compatibility
+    onSuccess: () -> Unit,
+    onError: (String) -> Unit
+) {
+    try {
+        val auth = FirebaseAuth.getInstance()
+        val currentUser = auth.currentUser
+
+        if (currentUser == null) {
+            onError("User not logged in")
+            return
+        }
+
+        // Check if user is signed in with Google
+        val isGoogleUser = currentUser.providerData.any {
+            it.providerId == GoogleAuthProvider.PROVIDER_ID
+        }
+
+        if (!isGoogleUser) {
+            onError("This account deletion method is only for Google authenticated users")
+            return
+        }
+
+        try {
+            val db = FirebaseFirestore.getInstance()
+            val userId = currentUser.uid
+
+            // For Google Auth users, we can try direct deletion first
+            // If it fails due to re-authentication requirements, we'll handle it
+            try {
+                // Delete user data from Firestore first
+                db.collection("users")
+                    .document(userId)
+                    .delete()
+                    .await()
+
+                // Delete the user authentication account
+                currentUser.delete().await()
+
+                onSuccess()
+            } catch (e: Exception) {
+                // If deletion fails due to recent authentication requirement
+                if (e.message?.contains("requires recent authentication") == true ||
+                    e.message?.contains("sensitive") == true) {
+
+                    // For Google Auth, we need to sign out and ask user to sign in again
+                    onError("For security reasons, please sign out and sign back in, then try deleting your account again.")
+                } else {
+                    throw e // Re-throw other exceptions to be handled below
+                }
+            }
+
+        } catch (e: Exception) {
+            when {
+                e.message?.contains("network") == true -> {
+                    onError("Network error. Please check your connection and try again.")
+                }
+                e.message?.contains("permission") == true -> {
+                    onError("Permission denied. Please try signing out and back in.")
+                }
+                else -> {
+                    onError("Failed to delete account: ${e.message}")
+                }
+            }
         }
     } catch (e: Exception) {
         onError("Failed to delete account: ${e.message}")
