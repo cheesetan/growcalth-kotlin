@@ -119,7 +119,7 @@ fun HouseSignUpScreen(
         Spacer(modifier = Modifier.height(32.dp))
 
         Text(
-            text = "Welcome to $schoolName",
+            text = "$schoolName",
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center

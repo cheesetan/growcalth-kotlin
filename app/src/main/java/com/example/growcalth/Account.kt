@@ -68,17 +68,38 @@ class AccountActivity : ComponentActivity() {
                     CoroutineScope(Dispatchers.Main).launch {
                         reauthenticateWithGoogleAndDelete(
                             idToken = idToken,
-                            onSuccess = { onDeleteSuccessCallback?.invoke() },
-                            onError = { error -> onDeleteErrorCallback?.invoke(error) }
+                            onSuccess = {
+                                onDeleteSuccessCallback?.invoke()
+                                // Clear callbacks after use
+                                onDeleteSuccessCallback = null
+                                onDeleteErrorCallback = null
+                            },
+                            onError = { error ->
+                                onDeleteErrorCallback?.invoke(error)
+                                // Clear callbacks after use
+                                onDeleteSuccessCallback = null
+                                onDeleteErrorCallback = null
+                            }
                         )
                     }
+                } ?: run {
+                    onDeleteErrorCallback?.invoke("No ID token received from Google")
+                    // Clear callbacks after use
+                    onDeleteSuccessCallback = null
+                    onDeleteErrorCallback = null
                 }
             } catch (e: ApiException) {
                 Log.e("AccountActivity", "Google sign-in failed: ${e.message}")
                 onDeleteErrorCallback?.invoke("Google sign-in failed: ${e.message}")
+                // Clear callbacks after use
+                onDeleteSuccessCallback = null
+                onDeleteErrorCallback = null
             }
         } else {
             onDeleteErrorCallback?.invoke("Google sign-in was cancelled")
+            // Clear callbacks after use
+            onDeleteSuccessCallback = null
+            onDeleteErrorCallback = null
         }
     }
 
@@ -104,7 +125,7 @@ class AccountActivity : ComponentActivity() {
 
     private fun triggerGoogleReauth() {
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken(getString(R.string.default_web_client_id)) // Make sure you have this in strings.xml
+            .requestIdToken(getString(R.string.default_web_client_id))
             .requestEmail()
             .build()
 
@@ -269,7 +290,7 @@ fun AccountScreen(
             isDeleting = isDeleting,
             onConfirm = {
                 isDeleting = true
-                // Directly trigger re-authentication with Google
+                // Trigger re-authentication with Google
                 onReauthRequired(
                     { // onSuccess
                         isDeleting = false
@@ -415,9 +436,9 @@ fun GoogleDeleteAccountDialog(
 
                 Text(
                     text = if (isDeleting)
-                        "Please sign in with Google to confirm account deletion. This action cannot be undone and all your data will be permanently removed."
+                        "Please complete the Google Sign-In to confirm account deletion. This action cannot be undone and all your data will be permanently removed."
                     else
-                        "Are you sure you want to delete your account? You'll need to authenticate with Google to confirm. This action cannot be undone and all your data will be permanently removed.",
+                        "Are you sure you want to delete your account? You'll need to sign in with Google to confirm. This action cannot be undone and all your data will be permanently removed.",
                     fontSize = 16.sp,
                     color = Color.Gray,
                     textAlign = TextAlign.Center,
@@ -433,10 +454,27 @@ fun GoogleDeleteAccountDialog(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = "Authenticating with Google...",
+                        text = "Waiting for Google Sign-In...",
                         fontSize = 14.sp,
                         color = Color.Gray
                     )
+
+                    // Add a cancel button even during the sign-in process
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = onDismiss,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.Gray.copy(alpha = 0.2f),
+                            contentColor = Color.Gray
+                        ),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            text = "Cancel Sign-In",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                 } else {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -459,7 +497,7 @@ fun GoogleDeleteAccountDialog(
                         }
 
                         Button(
-                            onClick = onConfirm, // This will trigger Google Sign-In
+                            onClick = onConfirm,
                             modifier = Modifier.weight(1f),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = Color.Red,
