@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -26,12 +27,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.growcalth.ui.theme.GrowCalthTheme
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 
 data class UserProfile(
     val name: String = "",
@@ -44,6 +50,37 @@ data class UserProfile(
 
 class AccountActivity : ComponentActivity() {
     private lateinit var authManager: FirebaseAuthManager
+    private var onDeleteSuccessCallback: (() -> Unit)? = null
+    private var onDeleteErrorCallback: ((String) -> Unit)? = null
+
+    // Add Google Sign-In launcher
+    private val googleSignInLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            val data = result.data
+            try {
+                val task = GoogleSignIn.getSignedInAccountFromIntent(data)
+                val account = task.getResult(ApiException::class.java)
+
+                // Re-authenticate and then proceed with deletion
+                account.idToken?.let { idToken ->
+                    CoroutineScope(Dispatchers.Main).launch {
+                        reauthenticateWithGoogleAndDelete(
+                            idToken = idToken,
+                            onSuccess = { onDeleteSuccessCallback?.invoke() },
+                            onError = { error -> onDeleteErrorCallback?.invoke(error) }
+                        )
+                    }
+                }
+            } catch (e: ApiException) {
+                Log.e("AccountActivity", "Google sign-in failed: ${e.message}")
+                onDeleteErrorCallback?.invoke("Google sign-in failed: ${e.message}")
+            }
+        } else {
+            onDeleteErrorCallback?.invoke("Google sign-in was cancelled")
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -54,10 +91,26 @@ class AccountActivity : ComponentActivity() {
             GrowCalthTheme {
                 AccountScreen(
                     onBackClick = { finish() },
-                    onDeleteSuccess = { navigateToMainActivity() }
+                    onDeleteSuccess = { navigateToMainActivity() },
+                    onReauthRequired = { successCallback, errorCallback ->
+                        onDeleteSuccessCallback = successCallback
+                        onDeleteErrorCallback = errorCallback
+                        triggerGoogleReauth()
+                    }
                 )
             }
         }
+    }
+
+    private fun triggerGoogleReauth() {
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(getString(R.string.default_web_client_id)) // Make sure you have this in strings.xml
+            .requestEmail()
+            .build()
+
+        val googleSignInClient = GoogleSignIn.getClient(this, gso)
+        val signInIntent = googleSignInClient.signInIntent
+        googleSignInLauncher.launch(signInIntent)
     }
 
     private fun navigateToMainActivity() {
@@ -101,7 +154,8 @@ fun AppTopBar(
 @Composable
 fun AccountScreen(
     onBackClick: () -> Unit = {},
-    onDeleteSuccess: () -> Unit = {}
+    onDeleteSuccess: () -> Unit = {},
+    onReauthRequired: (onSuccess: () -> Unit, onError: (String) -> Unit) -> Unit = { _, _ -> }
 ) {
     val context = LocalContext.current
     var userProfile by remember { mutableStateOf<UserProfile?>(null) }
@@ -126,20 +180,17 @@ fun AccountScreen(
     }
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
+        modifier = Modifier.fillMaxSize()
     ) {
-        // App Bar
         AppTopBar(
             title = "Account",
             onBackClick = onBackClick
         )
 
-        // Content
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFFEBEBF2)) // Light gray background for content area only
+                .background(Color(0xFFEBEBF2))
                 .verticalScroll(rememberScrollState())
                 .padding(20.dp)
         ) {
@@ -171,26 +222,20 @@ fun AccountScreen(
                 }
 
                 userProfile != null -> {
-                    // Personal Information Section
                     AccountSection(title = "PERSONAL INFORMATION") {
                         AccountInfoRow(label = "Name", value = userProfile!!.name)
-
                         HorizontalDivider(color = Color.Gray.copy(alpha = 0.2f), thickness = 0.5.dp)
                         AccountInfoRow(label = "Email", value = userProfile!!.email, isMultiline = true)
-
                         HorizontalDivider(color = Color.Gray.copy(alpha = 0.2f), thickness = 0.5.dp)
                         AccountInfoRow(label = "House", value = userProfile!!.house.capitalize())
-
                         HorizontalDivider(color = Color.Gray.copy(alpha = 0.2f), thickness = 0.5.dp)
                         AccountInfoRow(label = "School", value = userProfile!!.userSchool)
-
                         HorizontalDivider(color = Color.Gray.copy(alpha = 0.2f), thickness = 0.5.dp)
                         AccountInfoRow(label = "Account Type", value = userProfile!!.accountType)
                     }
 
                     Spacer(modifier = Modifier.height(40.dp))
 
-                    // Sign In & Security Section
                     AccountSection(title = "SIGN IN & SECURITY") {
                         AccountActionRow(
                             label = "Change Password",
@@ -202,7 +247,6 @@ fun AccountScreen(
 
                     Spacer(modifier = Modifier.height(40.dp))
 
-                    // Delete Account Button
                     Text(
                         text = "Delete account",
                         fontSize = 17.sp,
@@ -221,28 +265,24 @@ fun AccountScreen(
     }
 
     if (showDeleteDialog) {
-        val coroutineScope = rememberCoroutineScope()
-
-        EnhancedDeleteAccountDialog(
+        GoogleDeleteAccountDialog(
             isDeleting = isDeleting,
-            onConfirm = { password ->
+            onConfirm = {
                 isDeleting = true
-                coroutineScope.launch {
-                    deleteAccountWithReauth(
-                        password = password,
-                        onSuccess = {
-                            isDeleting = false
-                            showDeleteDialog = false
-                            onDeleteSuccess()
-                        },
-                        onError = { error ->
-                            isDeleting = false
-                            showDeleteDialog = false
-                            errorMessage = error
-                            Log.e("AccountScreen", "Error deleting account: $error")
-                        }
-                    )
-                }
+                // Directly trigger re-authentication with Google
+                onReauthRequired(
+                    { // onSuccess
+                        isDeleting = false
+                        showDeleteDialog = false
+                        onDeleteSuccess()
+                    },
+                    { error -> // onError
+                        isDeleting = false
+                        showDeleteDialog = false
+                        errorMessage = error
+                        Log.e("AccountScreen", "Error deleting account: $error")
+                    }
+                )
             },
             onDismiss = {
                 if (!isDeleting) {
@@ -344,11 +384,11 @@ fun AccountActionRow(
     }
 }
 
-// Enhanced delete dialog for Google Auth - simpler approach
+// Updated delete dialog that shows Google re-auth flow
 @Composable
-fun EnhancedDeleteAccountDialog(
+fun GoogleDeleteAccountDialog(
     isDeleting: Boolean,
-    onConfirm: (String) -> Unit,
+    onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
     Dialog(onDismissRequest = { if (!isDeleting) onDismiss() }) {
@@ -374,7 +414,10 @@ fun EnhancedDeleteAccountDialog(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = "Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently removed.",
+                    text = if (isDeleting)
+                        "Please sign in with Google to confirm account deletion. This action cannot be undone and all your data will be permanently removed."
+                    else
+                        "Are you sure you want to delete your account? You'll need to authenticate with Google to confirm. This action cannot be undone and all your data will be permanently removed.",
                     fontSize = 16.sp,
                     color = Color.Gray,
                     textAlign = TextAlign.Center,
@@ -390,7 +433,7 @@ fun EnhancedDeleteAccountDialog(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = "Deleting account...",
+                        text = "Authenticating with Google...",
                         fontSize = 14.sp,
                         color = Color.Gray
                     )
@@ -416,7 +459,7 @@ fun EnhancedDeleteAccountDialog(
                         }
 
                         Button(
-                            onClick = { onConfirm("") }, // Empty string since no password needed for Google Auth
+                            onClick = onConfirm, // This will trigger Google Sign-In
                             modifier = Modifier.weight(1f),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = Color.Red,
@@ -425,7 +468,7 @@ fun EnhancedDeleteAccountDialog(
                             shape = RoundedCornerShape(8.dp)
                         ) {
                             Text(
-                                text = "Delete",
+                                text = "Sign in & Delete",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Medium
                             )
@@ -436,8 +479,6 @@ fun EnhancedDeleteAccountDialog(
         }
     }
 }
-
-// Remove these components as they're not needed for Google Auth
 
 // Function to load user profile from Firebase
 suspend fun loadUserProfile(
@@ -466,7 +507,6 @@ suspend fun loadUserProfile(
                 val schoolCode = userDoc.getString("schoolCode") ?: ""
                 var schoolName = " "
 
-                // ✅ Query schools collection using schoolCode field
                 if (schoolCode.isNotEmpty()) {
                     val schoolQuery = db.collection("schools")
                         .whereEqualTo("schoolCode", schoolCode)
@@ -487,7 +527,7 @@ suspend fun loadUserProfile(
                         ?: extractNameFromEmail(userEmail),
                     email = userEmail,
                     house = userDoc.getString("house") ?: determineHouseFromEmail(userEmail),
-                    userSchool = schoolName, // ✅ Resolved school name
+                    userSchool = schoolName,
                     accountType = userDoc.getString("accountType") ?: determineAccountType(userEmail),
                     studentId = userDoc.getString("studentId") ?: ""
                 )
@@ -517,7 +557,6 @@ private fun extractNameFromEmail(email: String): String {
     if (email.isEmpty()) return "Unknown User"
     val username = email.split("@").firstOrNull() ?: return "Unknown User"
 
-    // Handle the specific format like "aathithya_j@s2021.ssts.edu.sg"
     val cleanUsername = username.replace("_", " ")
 
     return cleanUsername.split(" ")
@@ -531,8 +570,6 @@ private fun extractNameFromEmail(email: String): String {
 private fun determineHouseFromEmail(email: String): String {
     return when {
         email.contains("ssts.edu.sg") -> {
-            // For SST students, try to determine house from student ID or other patterns
-            // Since we don't have house info in the email, return empty for now
             ""
         }
         else -> ""
@@ -541,23 +578,23 @@ private fun determineHouseFromEmail(email: String): String {
 
 private fun determineAccountType(email: String): String {
     return when {
-        email.contains("@s2021.ssts.edu.sg") -> "Alumnus" // Graduated in 2021
-        email.contains("@s2022.ssts.edu.sg") -> "Alumnus" // Graduated in 2022
-        email.contains("@s2023.ssts.edu.sg") -> "Alumnus" // Graduated in 2023
-        email.contains("@s2024.ssts.edu.sg") -> "Student" // Current Year 4 (graduating 2024)
-        email.contains("@s2025.ssts.edu.sg") -> "Student" // Current Year 3 (graduating 2025)
-        email.contains("@s2026.ssts.edu.sg") -> "Student" // Current Year 2 (graduating 2026)
-        email.contains("@s2027.ssts.edu.sg") -> "Student" // Current Year 1 (graduating 2027)
-        email.contains("ssts.edu.sg") -> "Student" // Default for SST emails
+        email.contains("@s2021.ssts.edu.sg") -> "Alumnus"
+        email.contains("@s2022.ssts.edu.sg") -> "Alumnus"
+        email.contains("@s2023.ssts.edu.sg") -> "Alumnus"
+        email.contains("@s2024.ssts.edu.sg") -> "Student"
+        email.contains("@s2025.ssts.edu.sg") -> "Student"
+        email.contains("@s2026.ssts.edu.sg") -> "Student"
+        email.contains("@s2027.ssts.edu.sg") -> "Student"
+        email.contains("ssts.edu.sg") -> "Student"
         email.contains("@staff.") -> "Staff"
         email.contains("@teacher.") -> "Teacher"
         else -> "User"
     }
 }
 
-// Enhanced delete function for Google Auth - handles re-authentication automatically
-suspend fun deleteAccountWithReauth(
-    password: String, // Not used for Google Auth but kept for function signature compatibility
+// Helper function to re-authenticate with Google and then delete
+suspend fun reauthenticateWithGoogleAndDelete(
+    idToken: String,
     onSuccess: () -> Unit,
     onError: (String) -> Unit
 ) {
@@ -570,59 +607,28 @@ suspend fun deleteAccountWithReauth(
             return
         }
 
-        // Check if user is signed in with Google
-        val isGoogleUser = currentUser.providerData.any {
-            it.providerId == GoogleAuthProvider.PROVIDER_ID
-        }
+        // Create credential with the new ID token
+        val credential = GoogleAuthProvider.getCredential(idToken, null)
 
-        if (!isGoogleUser) {
-            onError("This account deletion method is only for Google authenticated users")
-            return
-        }
+        // Re-authenticate the user
+        currentUser.reauthenticate(credential).await()
 
-        try {
-            val db = FirebaseFirestore.getInstance()
-            val userId = currentUser.uid
+        // Now delete the account
+        val db = FirebaseFirestore.getInstance()
+        val userId = currentUser.uid
 
-            // For Google Auth users, we can try direct deletion first
-            // If it fails due to re-authentication requirements, we'll handle it
-            try {
-                // Delete user data from Firestore first
-                db.collection("users")
-                    .document(userId)
-                    .delete()
-                    .await()
+        // Delete user data from Firestore
+        db.collection("users")
+            .document(userId)
+            .delete()
+            .await()
 
-                // Delete the user authentication account
-                currentUser.delete().await()
+        // Delete the user authentication account
+        currentUser.delete().await()
 
-                onSuccess()
-            } catch (e: Exception) {
-                // If deletion fails due to recent authentication requirement
-                if (e.message?.contains("requires recent authentication") == true ||
-                    e.message?.contains("sensitive") == true) {
+        onSuccess()
 
-                    // For Google Auth, we need to sign out and ask user to sign in again
-                    onError("For security reasons, please sign out and sign back in, then try deleting your account again.")
-                } else {
-                    throw e // Re-throw other exceptions to be handled below
-                }
-            }
-
-        } catch (e: Exception) {
-            when {
-                e.message?.contains("network") == true -> {
-                    onError("Network error. Please check your connection and try again.")
-                }
-                e.message?.contains("permission") == true -> {
-                    onError("Permission denied. Please try signing out and back in.")
-                }
-                else -> {
-                    onError("Failed to delete account: ${e.message}")
-                }
-            }
-        }
     } catch (e: Exception) {
-        onError("Failed to delete account: ${e.message}")
+        onError("Failed to delete account after re-authentication: ${e.message}")
     }
 }
